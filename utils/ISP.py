@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.core.numeric import outer
+# from numpy.core.numeric import outer  # deprecated path
 
 def apply_gains(bayer_image, wb):
     """Applies white balance to Bayer an image."""

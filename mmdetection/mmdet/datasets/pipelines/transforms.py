@@ -9,7 +9,7 @@ from numpy import random
 
 from mmdet.core import PolygonMasks
 from mmdet.core.evaluation.bbox_overlaps import bbox_overlaps
-from numpy.lib.arraypad import pad
+from numpy import pad  # was numpy.lib.arraypad.pad
 from ..builder import PIPELINES
 from .noisemodel import *
 try:

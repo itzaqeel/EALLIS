@@ -5,7 +5,7 @@ from collections import OrderedDict
 import mmcv
 import numpy as np
 from mmcv.utils import print_log
-from numpy.core.fromnumeric import size
+# from numpy.core.fromnumeric import size  # deprecated path
 from terminaltables import AsciiTable
 from torch.utils.data import Dataset
 

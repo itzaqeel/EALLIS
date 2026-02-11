@@ -1,7 +1,7 @@
 import re
 from mmcv.cnn.bricks.registry import TRANSFORMER_LAYER
-from numpy.lib.arraypad import pad
-from numpy.lib.type_check import common_type
+from numpy import pad  # was numpy.lib.arraypad.pad
+from numpy import common_type  # was numpy.lib.type_check.common_type
 import torch
 import torch.nn.functional as F
 import torch.nn as nn

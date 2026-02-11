@@ -2,7 +2,7 @@ import random
 import warnings
 
 import numpy as np
-from numpy.lib.npyio import load
+# from numpy.lib.npyio import load  # deprecated path
 import torch
 from mmcv.parallel import MMDataParallel, MMDistributedDataParallel
 from mmcv.runner import (HOOKS, DistSamplerSeedHook, EpochBasedRunner,
