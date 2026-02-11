@@ -144,6 +144,7 @@ load_from = 'Checkpoints/Checkpoint1.pth'
 # from mmdetection
 
 resume_from = None
+gpu_ids = [0]
 workflow = [('train', 1)]
 find_unused_parameters = True
 
