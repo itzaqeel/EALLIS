@@ -1,8 +1,8 @@
-import imp
+# import imp  # removed in Python 3.12
 # from os import pread
-from tokenize import group
+# from tokenize import group  # unused
 import warnings
-from numpy.core.fromnumeric import size
+# from numpy.core.fromnumeric import size  # deprecated path
 import torch
 # from torch.functional import _index_tensor_with_indices_list
 import torch.nn as nn
