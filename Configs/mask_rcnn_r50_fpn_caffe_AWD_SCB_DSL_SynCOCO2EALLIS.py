@@ -125,7 +125,8 @@ runner = dict(type='EpochBasedRunner', max_epochs=12)
 
 
 # default runtime
-checkpoint_config = dict(interval=1)
+checkpoint_config = dict(interval=1, max_keep_ckpts=1)
+evaluation = dict(interval=1, metric=['bbox', 'segm'], save_best='bbox_mAP')
 # yapf:disable
 log_config = dict(
     interval=50,
