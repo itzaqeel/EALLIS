@@ -145,6 +145,8 @@ load_from = 'Checkpoints/Checkpoint1.pth'
 
 resume_from = None
 gpu_ids = [0]
+seed = 42
+optimizer_config = dict(grad_clip=None)
 workflow = [('train', 1)]
 find_unused_parameters = True
 
