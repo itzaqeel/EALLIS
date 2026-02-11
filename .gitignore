@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Data (too large for git)
+data/coco/
+data/eallis/images/
+data/eallis/JPEGImages
+*.zip
+
+# Checkpoints (large binary files)
+Checkpoints/*.pth
+work_dir/
+
+# Logs
+*.log
+*.log.json
+
+# Jupyter
+.ipynb_checkpoints/
+
+# mmdetection build artifacts
+mmdetection/*.egg-info/
+mmdetection/build/
+mmdetection/dist/
+
+# Antigravity / Gemini
+.gemini/
