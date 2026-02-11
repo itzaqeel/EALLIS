@@ -15,6 +15,7 @@ from ...builder import PIPELINES
 from numpy.testing._private.utils import print_assert_equal
 from .process import process
 from .unprocess import unprocess
+import os
 import os.path as osp
 
 def calculate_brightness(img):
@@ -92,11 +93,7 @@ class NoiseModel:
 
         self.camera = camera
         if param_dir is None:
-            try:
-                self.param_dir = '~/code/mmdetection/mmdet/datasets/pipelines/noisemodel/camera_params'
-            except:
-                print('please specify the location of camera parameters, e.g., ~/code/mmdetection/mmdet/datasets/pipelines/noisemodel/camera_params')
-                raise Exception
+            self.param_dir = os.path.join(os.path.dirname(__file__), 'camera_params')
         else:
             self.param_dir = param_dir
 
