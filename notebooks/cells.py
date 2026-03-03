@@ -259,6 +259,41 @@ if old_return in content:
 else:
     print('[Fix 8] _sample_params already fixed.')
 
+# --- Fix 9: PyTorch 2.x MMCV Device Type Error ---
+mmcv_funcs_file = '/usr/local/lib/python3.12/dist-packages/mmcv/parallel/_functions.py'
+if not os.path.exists(mmcv_funcs_file):
+    import site
+    for sp in site.getsitepackages():
+        candidate = os.path.join(sp, 'mmcv/parallel/_functions.py')
+        if os.path.exists(candidate):
+            mmcv_funcs_file = candidate
+            break
+
+if os.path.exists(mmcv_funcs_file):
+    with open(mmcv_funcs_file, 'r') as f:
+        content = f.read()
+    
+    # Check if not already patched
+    if 'import packaging' not in content and 'import torch' in content:
+        old_streams = "        if input_device == -1 and target_gpus != [-1]:\n            # Perform CPU to GPU copies in a background stream\n            streams = [_get_stream(device) for device in target_gpus]"
+        new_streams = """        if input_device == -1 and target_gpus != [-1]:
+            # Perform CPU to GPU copies in a background stream
+            import packaging.version
+            if packaging.version.parse(torch.__version__) >= packaging.version.parse('2.0.0'):
+                streams = [_get_stream(torch.device('cuda', device)) for device in target_gpus]
+            else:
+                streams = [_get_stream(device) for device in target_gpus]"""
+        
+        if old_streams in content:
+            content = content.replace(old_streams, new_streams)
+            with open(mmcv_funcs_file, 'w') as f:
+                f.write(content)
+            print('[Fix 9] PyTorch 2.x MMCV Device Type patch applied.')
+        else:
+            print('[Fix 9] Target string for MMCV Device Type patch not found.')
+else:
+    print('[Fix 9] Could not locate mmcv/parallel/_functions.py to patch.')
+
 print('\n✅ All fixes applied!')
 
 # --- Cell 12 ---
