@@ -260,24 +260,47 @@ else:
     print('[Fix 8] _sample_params already fixed.')
 
 # --- Fix 9: PyTorch 2.x MMCV Device Type Error ---
-# MMCV imports `_get_stream` from PyTorch and stores its own reference.
-# We must monkeypatch `mmcv.parallel._functions._get_stream` directly.
-print('⏳ Applying PyTorch 2.x MMCV Device Type patch...')
+# Monkeypatching fails if MMCV spawns processes or binds Scatter too early.
+# We must rewrite the actual mmcv file on disk.
+print('⏳ Applying PyTorch 2.x MMCV Device Type patch to mmcv source...')
 import torch
+import re
+
 try:
-    import mmcv.parallel._functions as mmcv_parallel_funcs
+    import mmcv
+    mmcv_funcs_file = os.path.join(os.path.dirname(mmcv.__file__), 'parallel', '_functions.py')
     
-    _original_get_stream = mmcv_parallel_funcs._get_stream
-    
-    def _patched_get_stream(device):
-        if isinstance(device, int):
-            device = torch.device('cuda', device)
-        return _original_get_stream(device)
+    if os.path.exists(mmcv_funcs_file):
+        with open(mmcv_funcs_file, 'r') as f:
+            content = f.read()
+            
+        # We are looking for: streams = [_get_stream(device) for device in target_gpus]
+        # And we want to safely convert `device` to `torch.device('cuda', device)` if it's an int.
         
-    mmcv_parallel_funcs._get_stream = _patched_get_stream
-    print('[Fix 9] Monkeypatched mmcv.parallel._functions._get_stream successfully.')
+        # Inject our helper at the top if not present
+        helper_code = "\nimport packaging.version\ndef _safe_get_stream(device):\n    import torch\n    from torch.nn.parallel._functions import _get_stream\n    if isinstance(device, int) and packaging.version.parse(torch.__version__) >= packaging.version.parse('2.0.0'):\n        device = torch.device('cuda', device)\n    return _get_stream(device)\n"
+        
+        if '_safe_get_stream' not in content:
+            content = helper_code + content
+            
+        # Replace the problematic call
+        old_call = "streams = [_get_stream(device) for device in target_gpus]"
+        new_call = "streams = [_safe_get_stream(device) for device in target_gpus]"
+        
+        if old_call in content:
+            content = content.replace(old_call, new_call)
+            with open(mmcv_funcs_file, 'w') as f:
+                f.write(content)
+            print(f'[Fix 9] Successfully patched mmcv source file: {mmcv_funcs_file}')
+        elif new_call in content:
+            print('[Fix 9] mmcv source file already patched.')
+        else:
+            print('[Fix 9] WARNING: Could not find the _get_stream call in mmcv source to replace.')
+    else:
+        print(f'[Fix 9] WARNING: mmcv_funcs_file not found at {mmcv_funcs_file}')
 except ImportError:
-    print('[Fix 9] mmcv.parallel._functions not found, skipping patch.')
+    print('[Fix 9] WARNING: Could not import mmcv to locate source files.')
+
 
 
 
