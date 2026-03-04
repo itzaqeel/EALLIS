@@ -260,25 +260,25 @@ else:
     print('[Fix 8] _sample_params already fixed.')
 
 # --- Fix 9: PyTorch 2.x MMCV Device Type Error ---
-# MMCV's _get_stream calls PyTorch's _get_stream(device), passing an int.
-# PyTorch 2.0+ expects a torch.device object with a .type attribute.
-# Instead of text replacing mmcv, we monkeypatch PyTorch's _get_stream.
+# MMCV imports `_get_stream` from PyTorch and stores its own reference.
+# We must monkeypatch `mmcv.parallel._functions._get_stream` directly.
 print('⏳ Applying PyTorch 2.x MMCV Device Type patch...')
 import torch
-import torch.nn.parallel._functions as torch_parallel_funcs
+try:
+    import mmcv.parallel._functions as mmcv_parallel_funcs
+    
+    _original_get_stream = mmcv_parallel_funcs._get_stream
+    
+    def _patched_get_stream(device):
+        if isinstance(device, int):
+            device = torch.device('cuda', device)
+        return _original_get_stream(device)
+        
+    mmcv_parallel_funcs._get_stream = _patched_get_stream
+    print('[Fix 9] Monkeypatched mmcv.parallel._functions._get_stream successfully.')
+except ImportError:
+    print('[Fix 9] mmcv.parallel._functions not found, skipping patch.')
 
-# Store original function
-_original_get_stream = torch_parallel_funcs._get_stream
-
-def _patched_get_stream(device):
-    # PyTorch 2.x expects a device object, not an int
-    if isinstance(device, int):
-        device = torch.device('cuda', device)
-    return _original_get_stream(device)
-
-# Apply patch globally
-torch_parallel_funcs._get_stream = _patched_get_stream
-print('[Fix 9] Monkeypatched torch.nn.parallel._functions._get_stream for mmcv compatibility.')
 
 
 print('\n✅ All fixes applied!')
