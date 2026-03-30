@@ -148,19 +148,21 @@ class MaskRCNNNoiseInv(MaskRCNN):
                     if hasattr(et, 'data'): et = et.data
                     if isinstance(et, list) and len(et) > 0 and hasattr(et[0], 'data'): et = et[0].data
                     if isinstance(et, torch.Tensor) and et.numel() > 0:
-                        t = et.view(et.shape[0], -1).max(dim=0)[0].view(et.shape[-2], et.shape[-1]).float().unsqueeze(0)
+                        t = torch.clamp(torch.sum(et.view(et.shape[0], et.shape[-2], et.shape[-1]).float(), dim=0), 0, 1).unsqueeze(0)
                     else:
                         t = torch.zeros((1, img.shape[-2], img.shape[-1]), device=img.device)
                     target_batch.append(t)
                 
                 if len(target_batch) > 0:
                     target = torch.stack(target_batch)
-                    for pred in edge_preds:
+                    weights = [0.6, 0.4]
+                    for i, pred in enumerate(edge_preds):
                         target_resized = F.interpolate(target, size=pred.shape[-2:], mode='nearest').squeeze(1)
-                        loss_edge += self.edge_loss_fn(pred, target_resized)
-                    losses["loss_edge"] = 0.5 * loss_edge
+                        mask = (target_resized > 0).float()
+                        loss_edge += weights[i] * self.edge_loss_fn(pred * mask, target_resized)
+                    losses["loss_edge"] = 0.3 * loss_edge
 
-        print("EDGE LOSS ACTIVE:", "loss_edge" in losses)
+        print("LOSS KEYS:", losses.keys())
 
         if return_proposal:
             return losses, backbone_x, x, proposal_list
