@@ -18,6 +18,7 @@ from .CustomConv import *
 import torch.nn.functional as F
 from .cbam import CBAM
 from mmcv.cnn import NonLocal2d
+from mmdetection_custom_part.mmdet.models.plugins.eallis_module import EALLISBlock
 
 class BasicBlock(BaseModule):
     expansion = 1
@@ -501,6 +502,9 @@ class ResNet(BaseModule):
         # self.gaussian_filter = GaussianBlurConv(64, 2).cuda()
         self.feat_dim = self.block.expansion * base_channels * 2**(
             len(self.stage_blocks) - 1)
+        
+        self.eallis_c3 = EALLISBlock(512)
+        self.eallis_c4 = EALLISBlock(1024)
 
     def make_stage_plugins(self, plugins, stage_idx):
         """Make plugins for ResNet ``stage_idx`` th stage.
@@ -659,6 +663,12 @@ class ResNet(BaseModule):
         for i, layer_name in enumerate(self.res_layers):
             res_layer = getattr(self, layer_name)
             x = res_layer(x)
+            
+            if i == 2:
+                x, edge_c3 = self.eallis_c3(x)
+            if i == 3:
+                x, edge_c4 = self.eallis_c4(x)
+                
             if i in self.out_indices:
                 outs.append(x)
         return tuple(outs)

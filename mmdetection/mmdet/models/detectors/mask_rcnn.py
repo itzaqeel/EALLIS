@@ -163,6 +163,7 @@ class MaskRCNNNoiseInv(MaskRCNN):
         if return_loss:
             losses = dict()
             noisy_img = kwargs.pop('noisy_img')
+            gt_edges = kwargs.pop('gt_edges', None)
             clean_losses, clean_backbone_x, clean_x = self.forward_train(img, img_metas, **kwargs)
             noisy_losses, noisy_backbone_x, noisy_x = self.forward_train(noisy_img, img_metas, **kwargs)
             losses['noise_inv_loss'] = 0
@@ -173,6 +174,29 @@ class MaskRCNNNoiseInv(MaskRCNN):
             for k in losses: 
                 if isinstance(losses[k], int): 
                     losses.pop(k)
+                    
+            if gt_edges is not None and hasattr(self.backbone, '_latest_edges') and len(self.backbone._latest_edges) > 0:
+                from mmdetection_custom_part.mmdet.models.losses.edge_loss import EdgeLoss
+                edge_loss_fn = EdgeLoss().to(img.device)
+                loss_edge = 0.0
+                batch_targets = []
+                for edges_per_img in gt_edges:
+                    if hasattr(edges_per_img, 'data'):
+                        edges_per_img = edges_per_img.data
+                    if isinstance(edges_per_img, list) and len(edges_per_img) > 0 and hasattr(edges_per_img[0], 'data'):
+                        edges_per_img = edges_per_img[0].data
+                    if isinstance(edges_per_img, torch.Tensor) and edges_per_img.numel() > 0:
+                        combined_edge = edges_per_img.view(edges_per_img.shape[0], -1).max(dim=0)[0].view(edges_per_img.shape[-2], edges_per_img.shape[-1]).float()
+                    else:
+                        combined_edge = torch.zeros((img.shape[-2], img.shape[-1]), device=img.device, dtype=torch.float)
+                    batch_targets.append(combined_edge)
+                if len(batch_targets) > 0:
+                    batch_targets = torch.stack(batch_targets).unsqueeze(1)
+                    for pred_edge in self.backbone._latest_edges:
+                        target_edge_resized = F.interpolate(batch_targets, size=pred_edge.shape[-2:], mode='nearest')
+                        loss_edge += edge_loss_fn(pred_edge, target_edge_resized)
+                losses['loss_edge'] = loss_edge
+
             return losses
         else:
             # return self.forward_test(img, img_metas, **kwargs)

@@ -16,6 +16,7 @@ train_pipeline = [
         with_bbox=True,
         with_mask=True,
         poly2mask=False),
+    dict(type='GenerateEdgeTargets'),  # NEW
     # please ensure using nearest, otherwise the noise level will be reduced, which is not fair.
     dict(type='Resize', img_scale=(600, 400), keep_ratio=True, interpolate_mode='nearest'), 
     dict(type='RandomFlip', flip_ratio=0.5),
@@ -275,5 +276,6 @@ model = dict(
         rcnn=dict(
             score_thr=0.05,
             nms=dict(type='nms', iou_threshold=0.5),
-            max_per_img=100,
             mask_thr_binary=0.5)))
+
+edge_loss = dict(type='EdgeLoss', loss_weight=1.0)
