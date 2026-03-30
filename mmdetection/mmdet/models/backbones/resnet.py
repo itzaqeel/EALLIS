@@ -648,6 +648,7 @@ class ResNet(BaseModule):
 
     def forward(self, x, denoise=False):
         """Forward function."""
+        self.edge_outputs = []
         # x = self.gfilter(x)
         # x = BilateralFilter(x, ksize=3, stride=1, sigmaSpace=1.0)
         # x = self.avgpool(x)
@@ -666,13 +667,14 @@ class ResNet(BaseModule):
             
             if len(outs) == 2:
                 x, edge_c3 = self.eallis_c3(x)
+                self.edge_outputs.append(edge_c3)
             if len(outs) == 3:
                 x, edge_c4 = self.eallis_c4(x)
+                self.edge_outputs.append(edge_c4)
                 
             if i in self.out_indices:
                 outs.append(x)
                 
-        self.edge_outputs = [edge_c3, edge_c4]
         return tuple(outs)
 
     def train(self, mode=True):

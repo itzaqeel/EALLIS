@@ -155,13 +155,12 @@ class MaskRCNNNoiseInv(MaskRCNN):
                 
                 if len(target_batch) > 0:
                     target = torch.stack(target_batch)
-                    print(edge_preds[0].shape)
                     for pred in edge_preds:
-                        target_resized = F.interpolate(target, size=pred.shape[-2:], mode='nearest')
+                        target_resized = F.interpolate(target, size=pred.shape[-2:], mode='nearest').squeeze(1)
                         loss_edge += self.edge_loss_fn(pred, target_resized)
-                    losses["loss_edge"] = loss_edge
+                    losses["loss_edge"] = 0.5 * loss_edge
 
-        print("LOSSES:", losses.keys())
+        print("EDGE LOSS ACTIVE:", "loss_edge" in losses)
 
         if return_proposal:
             return losses, backbone_x, x, proposal_list

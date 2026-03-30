@@ -79,7 +79,6 @@ class EALLISBlock(nn.Module):
         edge_map = self.edge(x2)
         edge_sigmoid = torch.sigmoid(edge_map)
 
-        fused = torch.cat([x2, edge_sigmoid], dim=1)
-        out = self.fuse(fused)
+        out = x2 * (1 + edge_sigmoid)
 
         return out, edge_map
