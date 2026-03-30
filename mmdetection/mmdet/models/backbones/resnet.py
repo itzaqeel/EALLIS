@@ -398,8 +398,11 @@ class ResNet(BaseModule):
                  zero_init_residual=True,
                  pretrained=None,
                  init_cfg=None,
-                 ):
+                 use_eallis=True,
+                 eallis_illum_only=False):
         super(ResNet, self).__init__(init_cfg)
+        self.use_eallis = use_eallis
+        self.eallis_illum_only = eallis_illum_only
         self.zero_init_residual = zero_init_residual
         if depth not in self.arch_settings:
             raise KeyError(f'invalid depth {depth} for resnet')
@@ -503,8 +506,9 @@ class ResNet(BaseModule):
         self.feat_dim = self.block.expansion * base_channels * 2**(
             len(self.stage_blocks) - 1)
         
-        self.eallis_c3 = EALLISBlock(512)
-        self.eallis_c4 = EALLISBlock(1024)
+        if self.use_eallis:
+            self.eallis_c3 = EALLISBlock(512, illum_only=self.eallis_illum_only)
+            self.eallis_c4 = EALLISBlock(1024, illum_only=self.eallis_illum_only)
 
     def make_stage_plugins(self, plugins, stage_idx):
         """Make plugins for ResNet ``stage_idx`` th stage.
@@ -665,12 +669,13 @@ class ResNet(BaseModule):
             res_layer = getattr(self, layer_name)
             x = res_layer(x)
             
-            if len(outs) == 2:
-                x, edge_c3 = self.eallis_c3(x)
-                self.edge_outputs.append(edge_c3)
-            if len(outs) == 3:
-                x, edge_c4 = self.eallis_c4(x)
-                self.edge_outputs.append(edge_c4)
+            if self.use_eallis:
+                if len(outs) == 2:
+                    x, edge_c3 = self.eallis_c3(x)
+                    if edge_c3 is not None: self.edge_outputs.append(edge_c3)
+                if len(outs) == 3:
+                    x, edge_c4 = self.eallis_c4(x)
+                    if edge_c4 is not None: self.edge_outputs.append(edge_c4)
                 
             if i in self.out_indices:
                 outs.append(x)
