@@ -664,13 +664,15 @@ class ResNet(BaseModule):
             res_layer = getattr(self, layer_name)
             x = res_layer(x)
             
-            if i == 2:
+            if len(outs) == 2:
                 x, edge_c3 = self.eallis_c3(x)
-            if i == 3:
+            if len(outs) == 3:
                 x, edge_c4 = self.eallis_c4(x)
                 
             if i in self.out_indices:
                 outs.append(x)
+                
+        self.edge_outputs = [edge_c3, edge_c4]
         return tuple(outs)
 
     def train(self, mode=True):

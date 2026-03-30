@@ -131,6 +131,38 @@ class MaskRCNNNoiseInv(MaskRCNN):
                                                  **kwargs)
         losses.update(roi_losses)
 
+        if hasattr(self.backbone, "edge_outputs"):
+            edge_preds = self.backbone.edge_outputs
+            edge_targets = kwargs.get("gt_edges", None)
+            
+            if edge_targets is not None:
+                loss_edge = 0
+                import torch
+                import torch.nn.functional as F
+                from mmdetection_custom_part.mmdet.models.losses.edge_loss import EdgeLoss
+                if not hasattr(self, 'edge_loss_fn'):
+                    self.edge_loss_fn = EdgeLoss().to(next(self.parameters()).device)
+                
+                target_batch = []
+                for et in edge_targets:
+                    if hasattr(et, 'data'): et = et.data
+                    if isinstance(et, list) and len(et) > 0 and hasattr(et[0], 'data'): et = et[0].data
+                    if isinstance(et, torch.Tensor) and et.numel() > 0:
+                        t = et.view(et.shape[0], -1).max(dim=0)[0].view(et.shape[-2], et.shape[-1]).float().unsqueeze(0)
+                    else:
+                        t = torch.zeros((1, img.shape[-2], img.shape[-1]), device=img.device)
+                    target_batch.append(t)
+                
+                if len(target_batch) > 0:
+                    target = torch.stack(target_batch)
+                    print(edge_preds[0].shape)
+                    for pred in edge_preds:
+                        target_resized = F.interpolate(target, size=pred.shape[-2:], mode='nearest')
+                        loss_edge += self.edge_loss_fn(pred, target_resized)
+                    losses["loss_edge"] = loss_edge
+
+        print("LOSSES:", losses.keys())
+
         if return_proposal:
             return losses, backbone_x, x, proposal_list
         else:
@@ -174,28 +206,6 @@ class MaskRCNNNoiseInv(MaskRCNN):
             for k in losses: 
                 if isinstance(losses[k], int): 
                     losses.pop(k)
-                    
-            if gt_edges is not None and hasattr(self.backbone, '_latest_edges') and len(self.backbone._latest_edges) > 0:
-                from mmdetection_custom_part.mmdet.models.losses.edge_loss import EdgeLoss
-                edge_loss_fn = EdgeLoss().to(img.device)
-                loss_edge = 0.0
-                batch_targets = []
-                for edges_per_img in gt_edges:
-                    if hasattr(edges_per_img, 'data'):
-                        edges_per_img = edges_per_img.data
-                    if isinstance(edges_per_img, list) and len(edges_per_img) > 0 and hasattr(edges_per_img[0], 'data'):
-                        edges_per_img = edges_per_img[0].data
-                    if isinstance(edges_per_img, torch.Tensor) and edges_per_img.numel() > 0:
-                        combined_edge = edges_per_img.view(edges_per_img.shape[0], -1).max(dim=0)[0].view(edges_per_img.shape[-2], edges_per_img.shape[-1]).float()
-                    else:
-                        combined_edge = torch.zeros((img.shape[-2], img.shape[-1]), device=img.device, dtype=torch.float)
-                    batch_targets.append(combined_edge)
-                if len(batch_targets) > 0:
-                    batch_targets = torch.stack(batch_targets).unsqueeze(1)
-                    for pred_edge in self.backbone._latest_edges:
-                        target_edge_resized = F.interpolate(batch_targets, size=pred_edge.shape[-2:], mode='nearest')
-                        loss_edge += edge_loss_fn(pred_edge, target_edge_resized)
-                losses['loss_edge'] = loss_edge
 
             return losses
         else:
