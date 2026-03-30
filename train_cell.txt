@@ -1,0 +1,123 @@
+os.chdir(REPO_DIR)
+
+import os
+import sys
+import glob
+import torch
+
+# ------------------------------------------------
+# Paths
+# ------------------------------------------------
+sys.path.insert(0, REPO_DIR)
+sys.path.insert(0, os.path.join(REPO_DIR, "mmdetection"))
+
+# ------------------------------------------------
+# Import custom modules required by the repo
+# ------------------------------------------------
+import mmdetection_custom_part.mmdet.models.detectors
+import mmdetection_custom_part.mmdet.models.backbones
+import mmdetection_custom_part.mmdet.models.dense_heads
+import mmdetection_custom_part.mmdet.models.roi_heads
+import mmdetection_custom_part.mmdet.models.plugins
+import mmdetection_custom_part.mmdet.models.seg_heads
+import mmdetection_custom_part.mmdet.models.losses
+
+# ------------------------------------------------
+# MMDetection imports
+# ------------------------------------------------
+from mmcv import Config
+from mmdet.datasets import build_dataset
+from mmdet.models import build_detector
+from mmdet.apis import train_detector
+
+# ------------------------------------------------
+# Patch MMCV scatter bug (PyTorch 2.x + Kaggle)
+# ------------------------------------------------
+import mmcv.parallel.scatter_gather as scatter_gather
+
+_original_scatter = scatter_gather.scatter
+
+def patched_scatter(inputs, target_gpus, dim=0):
+    import torch
+    if isinstance(target_gpus[0], int):
+        target_gpus = [torch.device(f"cuda:{i}") for i in target_gpus]
+    return _original_scatter(inputs, target_gpus, dim)
+
+scatter_gather.scatter = patched_scatter
+
+# ------------------------------------------------
+# Load training config
+# ------------------------------------------------
+cfg = Config.fromfile("Configs/train_kaggle.py")
+
+cfg.device = "cuda"
+cfg.gpu_ids = [0]
+
+print("CUDA available:", torch.cuda.is_available())
+if torch.cuda.is_available():
+    print("GPU:", torch.cuda.get_device_name(0))
+
+# ------------------------------------------------
+# Build dataset
+# ------------------------------------------------
+print("\nBuilding datasets...")
+datasets = [build_dataset(cfg.data.train)]
+print(f"Train dataset: {len(datasets[0])} images")
+
+# ------------------------------------------------
+# Build model
+# ------------------------------------------------
+print("\nBuilding model...")
+model = build_detector(cfg.model)
+model.init_weights()
+
+model.CLASSES = datasets[0].CLASSES
+
+print(f"Model: {cfg.model.type} | Backbone: {cfg.model.backbone.type}")
+print(f"Training for {cfg.runner.max_epochs} epochs")
+print(f"Checkpoints saved to: {cfg.work_dir}")
+
+# ------------------------------------------------
+# Train model
+# ------------------------------------------------
+
+for name, module in model.named_modules():
+    if "eallis" in name.lower():
+        print("FOUND EALLIS:", name, type(module))
+
+
+
+print("\n=== VERIFY EALLIS ===")
+
+found = False
+for name, module in model.named_modules():
+    if "eallis" in name.lower():
+        print("FOUND:", name, type(module))
+        found = True
+
+if not found:
+    raise Exception("EALLIS NOT ACTIVE")
+
+print("\n=== VERIFY DATA PIPELINE ===")
+data = datasets[0][0]
+print(data.keys())
+
+train_detector(
+    model,
+    datasets,
+    cfg,
+    distributed=False,
+    validate=True,
+    meta=dict()
+)
+
+print("\nTraining complete!")
+
+
+print("\nSaved output files:")
+
+SAVE_DIR = cfg.work_dir
+
+for f in sorted(glob.glob(os.path.join(SAVE_DIR, "*"))):
+    size_mb = os.path.getsize(f) / 1024 / 1024
+    print(f"{os.path.basename(f):40s} {size_mb:8.1f} MB")
