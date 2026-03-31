@@ -24,11 +24,11 @@ class ResNet(MMDetResNet):
 
         for i, feat in enumerate(outs):
 
-            if i == 2:
+            if i == 1:
                 feat, edge = self.eallis_c3(feat)
                 self.edge_outputs.append(edge)
 
-            elif i == 3:
+            elif i == 2:
                 feat, edge = self.eallis_c4(feat)
                 self.edge_outputs.append(edge)
 
