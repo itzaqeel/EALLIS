@@ -1,7 +1,8 @@
 import numpy as np
 import cv2
+from mmdet.datasets.builder import PIPELINES
 
-
+@PIPELINES.register_module()
 class GenerateEdgeTargets:
     def __call__(self, results):
         masks = results['gt_masks'].masks
