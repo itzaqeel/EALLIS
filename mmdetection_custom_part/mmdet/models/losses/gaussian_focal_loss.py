@@ -1,1 +1,1 @@
-from mmdetection_custom_part\mmdet\models\losses\gaussian_focal_loss import *\n
+from mmdet.models.losses.gaussian_focal_loss import *

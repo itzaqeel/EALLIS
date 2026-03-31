@@ -1,1 +1,1 @@
-from mmdetection_custom_part\mmdet\models\losses\cross_entropy_loss import *\n
+from mmdet.models.losses.cross_entropy_loss import *

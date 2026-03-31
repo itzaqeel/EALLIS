@@ -1,1 +1,1 @@
-from mmdetection_custom_part\mmdet\models\seg_heads\base_semantic_head import *\n
+from mmdet.models.seg_heads.base_semantic_head import *

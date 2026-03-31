@@ -1,1 +1,1 @@
-from mmdetection_custom_part\mmdet\models\roi_heads\test_mixins import *\n
+from mmdet.models.roi_heads.test_mixins import *

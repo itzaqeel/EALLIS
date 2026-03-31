@@ -1,1 +1,1 @@
-from mmdetection_custom_part\mmdet\models\roi_heads\shared_heads\res_layer import *\n
+from mmdet.models.roi_heads.shared_heads.res_layer import *

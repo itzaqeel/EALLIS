@@ -1,1 +1,1 @@
-from mmdetection_custom_part\mmdet\models\losses\balanced_l1_loss import *\n
+from mmdet.models.losses.balanced_l1_loss import *

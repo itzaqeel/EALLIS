@@ -1,1 +1,1 @@
-from mmdetection_custom_part\mmdet\models\roi_heads\roi_extractors\base_roi_extractor import *\n
+from mmdet.models.roi_heads.roi_extractors.base_roi_extractor import *

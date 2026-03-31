@@ -1,1 +1,1 @@
-from mmdetection_custom_part\mmdet\models\roi_heads\grid_roi_head import *\n
+from mmdet.models.roi_heads.grid_roi_head import *

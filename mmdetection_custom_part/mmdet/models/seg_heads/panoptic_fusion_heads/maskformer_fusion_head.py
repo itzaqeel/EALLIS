@@ -1,1 +1,1 @@
-from mmdetection_custom_part\mmdet\models\seg_heads\panoptic_fusion_heads\maskformer_fusion_head import *\n
+from mmdet.models.seg_heads.panoptic_fusion_heads.maskformer_fusion_head import *

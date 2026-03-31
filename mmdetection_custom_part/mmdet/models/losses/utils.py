@@ -1,1 +1,1 @@
-from mmdetection_custom_part\mmdet\models\losses\utils import *\n
+from mmdet.models.losses.utils import *

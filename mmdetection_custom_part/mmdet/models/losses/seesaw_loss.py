@@ -1,1 +1,1 @@
-from mmdetection_custom_part\mmdet\models\losses\seesaw_loss import *\n
+from mmdet.models.losses.seesaw_loss import *

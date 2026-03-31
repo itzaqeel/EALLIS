@@ -1,1 +1,1 @@
-from mmdetection_custom_part\mmdet\models\plugins\msdeformattn_pixel_decoder import *\n
+from mmdet.models.plugins.msdeformattn_pixel_decoder import *

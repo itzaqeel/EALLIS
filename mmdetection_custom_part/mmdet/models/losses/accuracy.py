@@ -1,1 +1,1 @@
-from mmdetection_custom_part\mmdet\models\losses\accuracy import *\n
+from mmdet.models.losses.accuracy import *

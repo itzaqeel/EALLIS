@@ -1,1 +1,1 @@
-from mmdetection_custom_part\mmdet\models\roi_heads\sparse_roi_head import *\n
+from mmdet.models.roi_heads.sparse_roi_head import *

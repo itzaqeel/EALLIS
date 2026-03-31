@@ -1,1 +1,1 @@
-from mmdetection_custom_part\mmdet\models\dense_heads\mask2former_head import *\n
+from mmdet.models.dense_heads.mask2former_head import *

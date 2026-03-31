@@ -1,1 +1,1 @@
-from mmdetection_custom_part\mmdet\models\builder import *\n
+from mmdet.models.builder import *
