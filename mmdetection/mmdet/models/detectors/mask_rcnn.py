@@ -125,11 +125,39 @@ class MaskRCNNNoiseInv(MaskRCNN):
         else:
             proposal_list = proposals
 
+        gt_edges = kwargs.pop('gt_edges', None)
+
         roi_losses = self.roi_head.forward_train(x, img_metas, proposal_list,
                                                  gt_bboxes, gt_labels,
                                                  gt_bboxes_ignore, gt_masks,
                                                  **kwargs)
         losses.update(roi_losses)
+
+        if gt_edges is not None and hasattr(self.backbone, 'edge_outputs'):
+            valid_edges = [e for e in getattr(self.backbone, 'edge_outputs', []) if e is not None]
+            if len(valid_edges) > 0:
+                import sys
+                from mmdetection_custom_part.mmdet.models.losses.edge_loss import EdgeLoss
+                import numpy as np
+                edge_loss_fn = EdgeLoss().to(x[0].device)
+                edge_loss_val = 0.0
+                for edge_pred in valid_edges:
+                    b, _, h, w = edge_pred.shape
+                    targets = []
+                    for i in range(b):
+                        masks = gt_edges[i].to_ndarray()
+                        if len(masks) > 0:
+                            mask = masks.max(axis=0)
+                        else:
+                            mask = np.zeros((gt_edges[i].height, gt_edges[i].width), dtype=np.uint8)
+                        
+                        mask = torch.from_numpy(mask).float().to(edge_pred.device).unsqueeze(0).unsqueeze(0)
+                        mask = F.interpolate(mask, size=(h, w), mode='bilinear', align_corners=False)
+                        targets.append(mask.squeeze(0))
+                    
+                    targets = torch.stack(targets)
+                    edge_loss_val = edge_loss_val + edge_loss_fn(edge_pred, targets)
+                losses['edge_loss'] = edge_loss_val
 
         if return_proposal:
             return losses, backbone_x, x, proposal_list
