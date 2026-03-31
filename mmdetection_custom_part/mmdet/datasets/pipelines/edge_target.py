@@ -1,6 +1,8 @@
 import numpy as np
 import cv2
 from mmdet.datasets.builder import PIPELINES
+from mmdet.core.mask.structures import BitmapMasks
+from mmcv.parallel import DataContainer as DC
 
 @PIPELINES.register_module()
 class GenerateEdgeTargets:
@@ -18,6 +20,12 @@ class GenerateEdgeTargets:
             edge = (dil - ero) > 0
             edge_maps.append(edge.astype(np.uint8))
 
-        results['gt_edges'] = edge_maps
+        if len(edge_maps) > 0:
+            edge_maps = np.stack(edge_maps)
+        else:
+            edge_maps = np.empty((0, masks.shape[1], masks.shape[2]), dtype=np.uint8)
+            
+        gt_edges = BitmapMasks(edge_maps, results['gt_masks'].height, results['gt_masks'].width)
+        results['gt_edges'] = DC(gt_edges, cpu_only=True)
 
         return results
