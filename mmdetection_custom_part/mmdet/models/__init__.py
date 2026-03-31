@@ -1,0 +1,1 @@
+from mmdetection_custom_part\mmdet\models\__init__ import *\n

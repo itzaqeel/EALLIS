@@ -1,5 +1,6 @@
 from mmdet.models.builder import BACKBONES
 from mmdet.models.backbones.resnet import ResNet as MMDetResNet
+from mmdet.models.backbones.resnet import ResNetV1d, ResNetAdaD, ResNetAdaDSmoothPrior
 from mmdetection_custom_part.mmdet.models.plugins.eallis_module import EALLISBlock
 
 @BACKBONES.register_module(force=True)

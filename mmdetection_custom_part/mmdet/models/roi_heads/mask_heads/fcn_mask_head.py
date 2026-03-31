@@ -1,0 +1,1 @@
+from mmdetection_custom_part\mmdet\models\roi_heads\mask_heads\fcn_mask_head import *\n

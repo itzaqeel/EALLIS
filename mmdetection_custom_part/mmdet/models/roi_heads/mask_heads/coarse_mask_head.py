@@ -1,0 +1,1 @@
+from mmdetection_custom_part\mmdet\models\roi_heads\mask_heads\coarse_mask_head import *\n

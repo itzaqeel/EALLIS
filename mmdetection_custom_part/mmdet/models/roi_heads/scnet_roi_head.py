@@ -1,0 +1,1 @@
+from mmdetection_custom_part\mmdet\models\roi_heads\scnet_roi_head import *\n
