@@ -1,0 +1,43 @@
+os.chdir(REPO_DIR)
+
+CONFIG_FILE = 'Configs/mask_rcnn_r50_fpn_caffe_AWD_SCB_DSL_SynCOCO2EALLIS.py'
+
+with open(CONFIG_FILE, 'r') as f:
+    config_content = f.read()
+
+# Batch size for Kaggle GPU (T4 = 16GB, P100 = 16GB)
+config_content = config_content.replace('BATCHSIZE = 8', 'BATCHSIZE = 4')
+
+# No pretrained checkpoint on first run
+config_content = re.sub(
+    r"load_from\s*=\s*'[^']*'",
+    "load_from = None",
+    config_content)
+
+# Use subset annotation file (writable location)
+if USE_SUBSET:
+    config_content = config_content.replace(
+        "ann_file='data/coco/annotations/instances_train2017.json'",
+        "ann_file='data/coco_subset/instances_train2017_subset.json'")
+
+# Set work_dir to Kaggle output
+config_content = config_content.replace(
+    "work_dir = './work_dir'",
+    f"work_dir = '{SAVE_DIR}'")
+
+# Add gt_edges to pipeline Collect
+config_content = config_content.replace(
+    "keys=['img', 'noisy_img', 'gt_bboxes', 'gt_labels', 'gt_masks']",
+    "keys=['img', 'noisy_img', 'gt_bboxes', 'gt_labels', 'gt_masks', 'gt_edges']"
+)
+
+config_content += '\ncustom_imports = dict(imports=[\'mmdetection_custom_part.mmdet.datasets.pipelines.edge_target\'], allow_failed_imports=False)\n'
+
+TRAIN_CONFIG = 'Configs/train_kaggle.py'
+with open(TRAIN_CONFIG, 'w') as f:
+    f.write(config_content)
+
+subset_label = f'{SUBSET_RATIO*100:.0f}% subset' if USE_SUBSET else 'full'
+print(f'Config saved: {TRAIN_CONFIG}')
+print(f'  Train: COCO ({subset_label}) | Batch: 4 | Epochs: 12')
+print(f'  Checkpoints → {SAVE_DIR}  (downloadable from Kaggle Output)')
