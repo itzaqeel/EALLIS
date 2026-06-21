@@ -157,7 +157,12 @@ class MaskRCNNNoiseInv(MaskRCNN):
                     
                     targets = torch.stack(targets)
                     edge_loss_val = edge_loss_val + edge_loss_fn(edge_pred, targets)
-                losses['edge_loss'] = edge_loss_val
+                # Average over the supervised scales (C3, C4) and down-weight so
+                # the auxiliary edge task regularises rather than competes with
+                # the detection/mask heads.
+                EDGE_LOSS_WEIGHT = 0.5
+                edge_loss_val = edge_loss_val / max(len(valid_edges), 1)
+                losses['edge_loss'] = EDGE_LOSS_WEIGHT * edge_loss_val
 
         if return_proposal:
             return losses, backbone_x, x, proposal_list
