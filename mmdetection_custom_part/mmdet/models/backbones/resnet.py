@@ -6,12 +6,19 @@ from mmdetection_custom_part.mmdet.models.plugins.eallis_module import EALLISBlo
 @BACKBONES.register_module(force=True)
 class ResNet(MMDetResNet):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, use_eallis=True, use_edge=True, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # EALLIS blocks
-        self.eallis_c3 = EALLISBlock(512)
-        self.eallis_c4 = EALLISBlock(1024)
+        # Ablation switches: use_eallis toggles the whole block (baseline when
+        # False); use_edge toggles the edge branch + edge loss (illum-only when
+        # False). The detector's edge loss no-ops when no edge outputs exist.
+        self.use_eallis = use_eallis
+        self.use_edge = use_edge
+        self.edge_outputs = []
+
+        if use_eallis:
+            self.eallis_c3 = EALLISBlock(512, use_edge=use_edge)
+            self.eallis_c4 = EALLISBlock(1024, use_edge=use_edge)
 
     def forward(self, x):
         # Reset edge outputs every forward
@@ -19,6 +26,9 @@ class ResNet(MMDetResNet):
 
         # Get original outputs
         outs = super().forward(x)
+
+        if not self.use_eallis:
+            return outs
 
         new_outs = []
 

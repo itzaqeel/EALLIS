@@ -63,27 +63,23 @@ class EdgeBranch(nn.Module):
 
 
 class EALLISBlock(nn.Module):
-    def __init__(self, channels, illum_only=False):
+    def __init__(self, channels, use_edge=True):
         super().__init__()
-        
-        self.illum_only = illum_only
+
+        self.use_edge = use_edge
         self.illum = IlluminationAttention(channels)
         self.rectifier = FeatureRectifier(channels)
-        
-        if not self.illum_only:
+
+        if use_edge:
             self.edge = EdgeBranch(channels)
-            self.fuse = nn.Conv2d(channels + 1, channels, 1)
 
     def forward(self, x):
-        x1 = self.illum(x)
-        x2 = self.rectifier(x1)
-        
-        if self.illum_only:
+        x2 = self.rectifier(self.illum(x))
+
+        if not self.use_edge:
             return x2, None
 
         edge_map = self.edge(x2)
-        edge_sigmoid = torch.sigmoid(edge_map)
-
-        out = x2 * (1 + edge_sigmoid)
+        out = x2 * (1 + torch.sigmoid(edge_map))
 
         return out, edge_map
