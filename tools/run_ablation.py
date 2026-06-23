@@ -61,7 +61,11 @@ def train_variant(name, flags, args):
            args.config, '--work-dir', work_dir, '--seed', '42',
            '--cfg-options'] + cfg_opts
     print(f'[train] {name} -> {work_dir}')
-    subprocess.run(cmd, check=True, cwd=REPO)
+    
+    env = os.environ.copy()
+    env['PYTHONPATH'] = f"{REPO}:{os.path.join(REPO, 'mmdetection')}:{env.get('PYTHONPATH', '')}"
+    
+    subprocess.run(cmd, check=True, cwd=REPO, env=env)
     return work_dir
 
 
@@ -89,10 +93,13 @@ def boundary_iou(work_dir, args):
     # evaluated with random edge layers attached).
     dumped = glob.glob(os.path.join(work_dir, '*.py'))
     cfg = dumped[0] if dumped else args.config
+    env = os.environ.copy()
+    env['PYTHONPATH'] = f"{REPO}:{os.path.join(REPO, 'mmdetection')}:{env.get('PYTHONPATH', '')}"
+    
     out = subprocess.run(
         [sys.executable, os.path.join(REPO, 'tools/eval_boundary.py'),
          '--config', cfg, '--checkpoint', ckpts[-1]],
-        capture_output=True, text=True, cwd=REPO)
+        capture_output=True, text=True, cwd=REPO, env=env)
     m = re.search(r'mean Boundary IoU\s*:\s*([0-9.]+)', out.stdout)
     if not m:
         print(out.stdout[-500:])  # surface errors if parsing failed
