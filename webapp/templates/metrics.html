@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Metrics{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="breadcrumb"><a href="{{ url_for('index') }}">Home</a> <span>›</span> Metrics</div>
+  <h1 class="page-title">📊 Evaluation <span class="gradient-text">Metrics</span></h1>
+  <p class="page-subtitle">EALLIS model performance evaluated on the EALLIS test set after 12 epochs of training.</p>
+</div>
+
+<!-- Detection Metrics -->
+<div class="content-section">
+  <div class="section-label">Detection Metrics (Bounding Box)</div>
+  <div class="metric-grid">
+    <div class="metric-card cyan">
+      <div class="metric-icon">📦</div>
+      <div class="metric-label">bbox mAP</div>
+      <div class="metric-value" data-count="32.8" data-suffix="%" data-decimals="1">0.0%</div>
+      <div class="metric-sub">COCO-style mean Average Precision</div>
+    </div>
+    <div class="metric-card cyan">
+      <div class="metric-icon">🎯</div>
+      <div class="metric-label">bbox mAP@50</div>
+      <div class="metric-value" data-count="54.7" data-suffix="%" data-decimals="1">0.0%</div>
+      <div class="metric-sub">IoU threshold = 0.50</div>
+    </div>
+    <div class="metric-card cyan">
+      <div class="metric-icon">🔬</div>
+      <div class="metric-label">bbox mAP@75</div>
+      <div class="metric-value" data-count="34.1" data-suffix="%" data-decimals="1">0.0%</div>
+      <div class="metric-sub">IoU threshold = 0.75 (strict)</div>
+    </div>
+  </div>
+</div>
+
+<!-- Segmentation Metrics -->
+<div class="content-section">
+  <div class="section-label">Segmentation Metrics (Mask)</div>
+  <div class="metric-grid">
+    <div class="metric-card purple">
+      <div class="metric-icon">🎭</div>
+      <div class="metric-label">segm mAP</div>
+      <div class="metric-value" data-count="26.8" data-suffix="%" data-decimals="1">0.0%</div>
+      <div class="metric-sub">Instance segmentation precision</div>
+    </div>
+    <div class="metric-card purple">
+      <div class="metric-icon">🎯</div>
+      <div class="metric-label">segm mAP@50</div>
+      <div class="metric-value" data-count="47.6" data-suffix="%" data-decimals="1">0.0%</div>
+      <div class="metric-sub">Mask IoU threshold = 0.50</div>
+    </div>
+    <div class="metric-card purple">
+      <div class="metric-icon">🔬</div>
+      <div class="metric-label">segm mAP@75</div>
+      <div class="metric-value" data-count="25.6" data-suffix="%" data-decimals="1">0.0%</div>
+      <div class="metric-sub">Mask IoU threshold = 0.75 (strict)</div>
+    </div>
+  </div>
+</div>
+
+<!-- Research Losses -->
+<div class="content-section">
+  <div class="section-label">Training Losses (Final Epoch)</div>
+  <div class="metric-grid">
+    <div class="metric-card green">
+      <div class="metric-icon">✂️</div>
+      <div class="metric-label">Edge Loss</div>
+      <div class="metric-value" data-count="0.711" data-suffix="" data-decimals="3">0.000</div>
+      <div class="metric-sub">Edge-aware boundary supervision</div>
+    </div>
+    <div class="metric-card amber">
+      <div class="metric-icon">🎭</div>
+      <div class="metric-label">Mask Loss</div>
+      <div class="metric-value" data-count="0.326" data-suffix="" data-decimals="3">0.000</div>
+      <div class="metric-sub">Instance mask cross-entropy</div>
+    </div>
+    <div class="metric-card red">
+      <div class="metric-icon">🏷️</div>
+      <div class="metric-label">Classification Loss</div>
+      <div class="metric-value" data-count="0.127" data-suffix="" data-decimals="3">0.000</div>
+      <div class="metric-sub">Object class prediction</div>
+    </div>
+    <div class="metric-card pink">
+      <div class="metric-icon">📐</div>
+      <div class="metric-label">BBox Regression Loss</div>
+      <div class="metric-value" data-count="0.148" data-suffix="" data-decimals="3">0.000</div>
+      <div class="metric-sub">Bounding box localization</div>
+    </div>
+  </div>
+</div>
+
+<!-- Additional Metrics -->
+<div class="content-section">
+  <div class="section-label">Additional Information</div>
+  <div class="metric-grid">
+    <div class="metric-card green">
+      <div class="metric-icon">🔇</div>
+      <div class="metric-label">Noise Invariance Loss</div>
+      <div class="metric-value" data-count="0.00078" data-suffix="" data-decimals="5">0.00000</div>
+      <div class="metric-sub">Near-zero = strong invariance</div>
+    </div>
+    <div class="metric-card cyan">
+      <div class="metric-icon">✅</div>
+      <div class="metric-label">Training Accuracy</div>
+      <div class="metric-value" data-count="95.8" data-suffix="%" data-decimals="1">0.0%</div>
+      <div class="metric-sub">Classification accuracy</div>
+    </div>
+    <div class="metric-card amber">
+      <div class="metric-icon">🔄</div>
+      <div class="metric-label">Epochs Trained</div>
+      <div class="metric-value">12</div>
+      <div class="metric-sub">Full training completed</div>
+    </div>
+    <div class="metric-card purple">
+      <div class="metric-icon">💾</div>
+      <div class="metric-label">GPU Memory</div>
+      <div class="metric-value" data-count="6.4" data-suffix=" GB" data-decimals="1">0.0 GB</div>
+      <div class="metric-sub">Tesla T4 compatible</div>
+    </div>
+  </div>
+</div>
+
+<!-- Scale Comparison Chart -->
+<div class="content-section">
+  <div class="chart-card">
+    <div class="chart-title">📊 mAP by Object Scale</div>
+    <div class="chart-subtitle">Comparing detection and segmentation performance across small, medium, and large objects</div>
+    <div class="chart-wrap"><canvas id="scaleChart"></canvas></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    buildBarChart('scaleChart',
+      ['Small', 'Medium', 'Large'],
+      [
+        { label: 'bbox mAP', data: [0.0, 9.0, 40.1], backgroundColor: 'rgba(0,200,255,0.2)', borderColor: 'rgba(0,200,255,1)', borderWidth: 1.5, borderRadius: 6, barPercentage: 0.6 },
+        { label: 'segm mAP', data: [0.0, 7.6, 33.6], backgroundColor: 'rgba(157,78,221,0.2)', borderColor: 'rgba(157,78,221,1)', borderWidth: 1.5, borderRadius: 6, barPercentage: 0.6 },
+      ],
+      'Object Scale', 'mAP (%)'
+    );
+  });
+</script>
+{% endblock %}

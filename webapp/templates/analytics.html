@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Training Analytics{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="breadcrumb"><a href="{{ url_for('index') }}">Home</a> <span>›</span> Training Analytics</div>
+  <h1 class="page-title">📈 Training <span class="gradient-text">Analytics</span></h1>
+  <p class="page-subtitle">Visualize loss curves, learning rate schedules, and training progress across 12 epochs.</p>
+</div>
+
+<!-- Summary Cards -->
+<div class="metric-grid" style="margin-bottom:28px;">
+  <div class="metric-card cyan">
+    <div class="metric-icon">🔄</div>
+    <div class="metric-label">Total Epochs</div>
+    <div class="metric-value">12</div>
+  </div>
+  <div class="metric-card green">
+    <div class="metric-icon">📉</div>
+    <div class="metric-label">Final Loss</div>
+    <div class="metric-value" data-count="2.69" data-suffix="" data-decimals="2">0.00</div>
+  </div>
+  <div class="metric-card purple">
+    <div class="metric-icon">🎯</div>
+    <div class="metric-label">Best bbox mAP</div>
+    <div class="metric-value" data-count="32.8" data-suffix="%" data-decimals="1">0.0%</div>
+  </div>
+  <div class="metric-card amber">
+    <div class="metric-icon">⏱️</div>
+    <div class="metric-label">Avg Time/Iter</div>
+    <div class="metric-value" data-count="3.15" data-suffix="s" data-decimals="2">0.00s</div>
+  </div>
+</div>
+
+<!-- Total Loss Curve -->
+<div class="content-section">
+  <div class="chart-card">
+    <div class="chart-title">📉 Total Loss Curve</div>
+    <div class="chart-subtitle">Combined training loss over all iterations (lower is better)</div>
+    <div class="chart-wrap"><canvas id="totalLossChart"></canvas></div>
+  </div>
+</div>
+
+<!-- Component Losses -->
+<div class="content-section">
+  <div class="chart-card">
+    <div class="chart-title">🧩 Component Losses</div>
+    <div class="chart-subtitle">Individual loss components: edge, mask, classification, and bbox regression</div>
+    <div class="chart-wrap" style="height:350px;"><canvas id="componentLossChart"></canvas></div>
+  </div>
+</div>
+
+<!-- Accuracy -->
+<div class="content-section">
+  <div class="chart-card">
+    <div class="chart-title">✅ Training Accuracy</div>
+    <div class="chart-subtitle">Classification accuracy over training iterations</div>
+    <div class="chart-wrap"><canvas id="accuracyChart"></canvas></div>
+  </div>
+</div>
+
+<!-- Learning Rate -->
+<div class="content-section">
+  <div class="chart-card">
+    <div class="chart-title">📐 Learning Rate Schedule</div>
+    <div class="chart-subtitle">Step decay with linear warmup (warmup 500 iters, step at epoch 9)</div>
+    <div class="chart-wrap"><canvas id="lrChart"></canvas></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const res = await fetch('/api/training-data');
+    const data = await res.json();
+
+    if (!data || !data.iterations) {
+      console.error('No training data available');
+      return;
+    }
+
+    const labels = data.iterations;
+
+    // Total Loss
+    buildLineChart('totalLossChart', labels, [{
+      label: 'Total Loss',
+      data: data.total_loss,
+      borderColor: CHART_COLORS.cyan,
+      backgroundColor: CHART_COLORS.cyanDim,
+      fill: true,
+    }], 'Iteration', 'Loss');
+
+    // Component Losses
+    buildLineChart('componentLossChart', labels, [
+      { label: 'Edge Loss', data: data.edge_loss, borderColor: CHART_COLORS.green, backgroundColor: 'transparent' },
+      { label: 'Mask Loss', data: data.mask_loss, borderColor: CHART_COLORS.purple, backgroundColor: 'transparent' },
+      { label: 'Classification Loss', data: data.cls_loss, borderColor: CHART_COLORS.amber, backgroundColor: 'transparent' },
+      { label: 'BBox Loss', data: data.bbox_loss, borderColor: CHART_COLORS.red, backgroundColor: 'transparent' },
+    ], 'Iteration', 'Loss');
+
+    // Accuracy
+    buildLineChart('accuracyChart', labels, [{
+      label: 'Training Accuracy',
+      data: data.accuracy,
+      borderColor: CHART_COLORS.green,
+      backgroundColor: CHART_COLORS.greenDim,
+      fill: true,
+    }], 'Iteration', 'Accuracy (%)');
+
+    // Learning Rate
+    buildLineChart('lrChart', labels, [{
+      label: 'Learning Rate',
+      data: data.lr,
+      borderColor: CHART_COLORS.amber,
+      backgroundColor: CHART_COLORS.amberDim,
+      fill: true,
+      stepped: 'after',
+    }], 'Iteration', 'LR');
+
+  } catch (err) {
+    console.error('Failed to load training data:', err);
+  }
+});
+</script>
+{% endblock %}

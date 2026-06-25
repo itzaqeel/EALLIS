@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}EALLIS{% endblock %} — Enhanced Adaptive Low-Light Instance Segmentation</title>
+  <meta name="description" content="{% block meta_desc %}EALLIS: A research platform for enhanced adaptive low-light instance segmentation using noise-invariant Mask R-CNN.{% endblock %}" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <!-- Mobile sidebar toggle -->
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation">☰</button>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <div class="layout">
+    <!-- ── Sidebar ────────────────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+      <a class="sidebar-logo" href="{{ url_for('index') }}">
+        <div class="logo-icon">🌙</div>
+        <div>
+          <div class="logo-text">EALLIS</div>
+          <div class="logo-sub">Research Dashboard</div>
+        </div>
+      </a>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Overview</div>
+        <a class="nav-link {% if active_page == 'dashboard' %}active{% endif %}" href="{{ url_for('index') }}">
+          <span class="nav-icon">🏠</span> Dashboard
+        </a>
+        <a class="nav-link {% if active_page == 'predict' %}active{% endif %}" href="{{ url_for('predict') }}">
+          <span class="nav-icon">🔍</span> Prediction
+        </a>
+
+        <div class="nav-section-label">Analysis</div>
+        <a class="nav-link {% if active_page == 'metrics' %}active{% endif %}" href="{{ url_for('metrics') }}">
+          <span class="nav-icon">📊</span> Metrics
+        </a>
+        <a class="nav-link {% if active_page == 'analytics' %}active{% endif %}" href="{{ url_for('analytics') }}">
+          <span class="nav-icon">📈</span> Training Analytics
+        </a>
+        <a class="nav-link {% if active_page == 'comparison' %}active{% endif %}" href="{{ url_for('comparison') }}">
+          <span class="nav-icon">⚖️</span> Model Comparison
+        </a>
+
+        <div class="nav-section-label">Information</div>
+        <a class="nav-link {% if active_page == 'research' %}active{% endif %}" href="{{ url_for('research') }}">
+          <span class="nav-icon">📄</span> Research
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        FYP 2024/25 · mmdetection
+      </div>
+    </aside>
+
+    <!-- ── Main Content ───────────────────────────────────────────── -->
+    <main class="main-content">
+      {% block content %}{% endblock %}
+
+      <footer class="page-footer">
+        EALLIS — Enhanced Adaptive Low-Light Instance Segmentation &nbsp;·&nbsp;
+        Mask R-CNN + AWD + SCB + DSL &nbsp;·&nbsp;
+        Built with <a href="https://github.com/open-mmlab/mmdetection" target="_blank">mmdetection</a>
+      </footer>
+    </main>
+  </div>
+
+  <!-- Error toast -->
+  <div id="errorToast"></div>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+
+  <!-- Sidebar toggle script -->
+  <script>
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+    if (sidebarToggle) {
+      sidebarToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('open');
+        sidebarOverlay.classList.toggle('active');
+      });
+    }
+
+    if (sidebarOverlay) {
+      sidebarOverlay.addEventListener('click', () => {
+        sidebar.classList.remove('open');
+        sidebarOverlay.classList.remove('active');
+      });
+    }
+  </script>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>
