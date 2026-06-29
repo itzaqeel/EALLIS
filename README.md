@@ -4,11 +4,12 @@ Instance segmentation in extremely dark environments using noise-invariant deep 
 
 ## Overview
 
-EALLIS implements a **Mask R-CNN** architecture enhanced with three key innovations to handle the challenges of low-light instance segmentation:
+EALLIS implements a **Mask R-CNN** architecture with the following components **active in the current configuration** ([`Configs/mask_rcnn_r50_fpn_caffe_AWD_SCB_DSL_SynCOCO2EALLIS.py`](Configs/mask_rcnn_r50_fpn_caffe_AWD_SCB_DSL_SynCOCO2EALLIS.py)):
 
-- **AWD (Adaptive Weighted Downsampling)** — Reduces high-frequency noise disturbances during feature downsampling
-- **SCB (Smooth-oriented Convolutional Block)** — Suppresses feature noise during convolution operations
-- **DSL (Disturbance Suppression Learning)** — Enables the model to learn disturbance-invariant features
+- **DSL (Disturbance Suppression Learning)** — dual clean/noisy forward pass with a noise-invariance loss (`MaskRCNNNoiseInv`)
+- **EALLIS block** — our custom per-stage module (illumination attention + feature rectifier + edge branch) injected at the C3/C4 backbone stages
+
+> **Note on AWD / SCB.** The AWD (`ResNetAdaD`) and SCB (`ResNetAdaDSmoothPrior`) backbone variants from *Instance Segmentation in the Dark* are present in the codebase but are **not enabled** in the current config (the backbone is `type='ResNet'`, i.e. a standard ResNet-50 + EALLIS blocks). The `AWD_SCB` in the config filename is historical. To actually use them, set the backbone `type` accordingly and re-train.
 
 The model trains on **SynCOCO** (COCO images with synthetically added low-light noise) and evaluates on real-world dark images from the EALLIS dataset.
 
@@ -17,26 +18,33 @@ The model trains on **SynCOCO** (COCO images with synthetically added low-light 
 ```
 Clean COCO Image → AddNoisyImg (synthetic noise) → Model receives img + noisy_img
                                                         ↓
-                                            ResNetAdaDSmoothPrior (backbone)
+                                  ResNet-50 (caffe) + EALLIS blocks @ C3/C4
+                                  (illum attention + rectifier + edge branch)
                                                         ↓
                                                   FPN (neck)
                                                         ↓
                                               MaskRCNNNoiseInv
                                              (bbox + segm heads)
                                                         ↓
-                                              DSL Loss (clean vs noisy)
+                              DSL noise-invariance loss (clean vs noisy) + edge loss
 ```
 
 ## Results
 
-Evaluated on the EALLIS test set (669 images, 8 classes):
+Evaluated on the EALLIS test set (669 images, 8 classes), full model at epoch 12
+(values taken directly from the training log [`None.log.json`](None.log.json)):
 
 | Metric | mAP | mAP@50 | mAP@75 |
 |---|---|---|---|
-| **Bbox** | **0.357** | 0.566 | 0.386 |
-| **Segm** | **0.292** | 0.512 | 0.282 |
+| **Bbox** | **0.328** | 0.547 | 0.341 |
+| **Segm** | **0.268** | 0.476 | 0.256 |
 
 **Classes**: bicycle, car, motorbike, bus, bottle, chair, dining table, TV monitor
+
+> ⚠️ **Methodological caveat (to be fixed):** the config currently sets `val == test`
+> with `save_best='bbox_mAP'`, so the "best" epoch is selected on the test set. These
+> numbers are therefore optimistic and not leakage-free. A held-out validation split is
+> required before they can be reported as final.
 
 ## Project Structure
 
@@ -136,12 +144,14 @@ The EALLIS dataset contains real-world low-light images with instance-level pixe
 
 ## Key Components
 
-| Component | Location | Description |
-|---|---|---|
-| AWD | `mmdetection/mmdet/models/backbones/CustomConv.py` | Adaptive weighted downsampling |
-| SConv | `mmdetection/mmdet/models/backbones/CustomConv.py` | Smooth convolution |
-| DSL | `mmdetection_custom_part/mmdet/models/detectors/mask_rcnn.py` | Disturbance suppression loss |
-| Noise Pipeline | `mmdetection/mmdet/datasets/pipelines/noisemodel/dark_noising.py` | SynCOCO noise synthesis |
+| Component | Location | Description | Enabled in current config? |
+|---|---|---|---|
+| EALLIS block | `mmdetection_custom_part/mmdet/models/plugins/eallis_module.py` | Illumination attention + feature rectifier + edge branch (C3/C4) | ✅ Yes |
+| DSL | `mmdetection_custom_part/mmdet/models/detectors/mask_rcnn.py` | Disturbance suppression (noise-invariance) loss | ✅ Yes |
+| Edge loss | `mmdetection_custom_part/mmdet/models/losses/edge_loss.py` | Edge-aware boundary loss | ✅ Yes |
+| Noise Pipeline | `mmdetection/mmdet/datasets/pipelines/noisemodel/dark_noising.py` | SynCOCO noise synthesis | ✅ Yes |
+| AWD | `mmdetection/mmdet/models/backbones/CustomConv.py` | Adaptive weighted downsampling | ❌ Available, not wired into this config |
+| SConv | `mmdetection/mmdet/models/backbones/CustomConv.py` | Smooth convolution | ❌ Available, not wired into this config |
 
 ## Acknowledgements
 

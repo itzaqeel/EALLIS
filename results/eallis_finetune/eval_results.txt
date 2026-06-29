@@ -1,0 +1,25 @@
+EALLIS — in-domain fine-tune on the real LIS/EALLIS train set
+Backbone: ResNet-50 + EALLIS (illumination attention + feature rectifier + edge branch) + DSL
+Edge loss weight: 0.1
+Evaluated on: EALLIS/LIS test set (669 images, 8 classes)
+
+============================================================
+EVALUATION RESULTS
+============================================================
+  bbox_mAP: 0.4230
+  bbox_mAP_50: 0.6650
+  bbox_mAP_75: 0.4640
+  bbox_mAP_s: 0.0000
+  bbox_mAP_m: 0.1210
+  bbox_mAP_l: 0.5130
+  bbox_mAP_copypaste: 0.423 0.665 0.464 0.000 0.121 0.513
+  segm_mAP: 0.3450
+  segm_mAP_50: 0.5780
+  segm_mAP_75: 0.3400
+  segm_mAP_s: 0.0000
+  segm_mAP_m: 0.0960
+  segm_mAP_l: 0.4270
+  segm_mAP_copypaste: 0.345 0.578 0.340 0.000 0.096 0.427
+
+NOTE: val == test in the current config (save_best on test) — these are
+optimistic; report a leakage-free number from a held-out split for the final thesis.

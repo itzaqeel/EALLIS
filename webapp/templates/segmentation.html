@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+{% block title %}Segmentation{% endblock %}
+
+{% block content %}
+<div class="page">
+  <h1 class="page-title">Segmentation</h1>
+  <p class="page-lead">Upload one or more low-light images to detect and segment objects.</p>
+
+  {% if demo_mode %}
+  <div class="demo-banner">Demo mode — no model loaded. Results are illustrative and the EALLIS
+    attention / edge maps are unavailable. Start with <code>python app.py --checkpoint checkpoint.pth</code>.</div>
+  {% endif %}
+
+  <!-- Input -->
+  <div class="card">
+    <div class="drop-zone" id="dropZone">
+      <div class="drop-title">Drop image(s) here</div>
+      <div class="drop-sub">or <span class="link-btn" id="browseBtn">browse files</span> · JPG, PNG, WEBP · multiple allowed</div>
+      <input type="file" id="fileInput" accept="image/*" multiple hidden />
+    </div>
+
+    <div class="preview-strip" id="previewStrip" style="display:none;"></div>
+
+    <div class="setting-group">
+      <label for="scoreThr">Confidence threshold</label>
+      <div class="slider-wrap">
+        <input type="range" id="scoreThr" min="0.1" max="0.9" step="0.05" value="0.3" />
+        <span class="slider-val" id="scoreThrVal">0.30</span>
+      </div>
+    </div>
+
+    <button class="btn-primary" id="runBtn" disabled>
+      <span class="spinner" id="spinner" style="display:none;"></span>
+      <span id="btnText">Run Segmentation</span>
+    </button>
+  </div>
+
+  <!-- Results (one block per image) -->
+  <div id="resultsContainer"></div>
+
+  <!-- History -->
+  <div class="history-section">
+    <div class="section-head">
+      <h2 class="section-title">Recent segmentations</h2>
+      <button class="btn-text" id="clearHistory">Clear</button>
+    </div>
+    <div class="history-grid" id="historyGrid">
+      <div class="history-empty">No segmentations yet.</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const HISTORY_KEY = 'eallis_history';
+  const HISTORY_MAX = 10;
+  const B64 = 'data:image/jpeg;base64,';
+
+  let selectedFiles = [];
+
+  const $ = id => document.getElementById(id);
+  const dropZone   = $('dropZone');
+  const fileInput  = $('fileInput');
+  const browseBtn  = $('browseBtn');
+  const previewStrip = $('previewStrip');
+  const runBtn     = $('runBtn');
+  const btnText    = $('btnText');
+  const spinner    = $('spinner');
+  const scoreThr   = $('scoreThr');
+  const scoreThrVal= $('scoreThrVal');
+  const resultsContainer = $('resultsContainer');
+  const errorToast = $('errorToast');
+  const historyGrid= $('historyGrid');
+  const clearHistory = $('clearHistory');
+
+  /* ── Threshold ── */
+  scoreThr.addEventListener('input', () => { scoreThrVal.textContent = parseFloat(scoreThr.value).toFixed(2); });
+
+  /* ── File selection (multiple) ── */
+  function openFilePicker() { fileInput.value = ''; fileInput.click(); }
+  browseBtn.addEventListener('click', e => { e.stopPropagation(); openFilePicker(); });
+  dropZone.addEventListener('click', openFilePicker);
+  fileInput.addEventListener('change', e => addFiles([...e.target.files]));
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('drag-over');
+    addFiles([...e.dataTransfer.files].filter(f => f.type.startsWith('image/')));
+  });
+
+  function addFiles(files) {
+    if (!files.length) return;
+    selectedFiles = selectedFiles.concat(files);
+    renderPreviews();
+    runBtn.disabled = selectedFiles.length === 0;
+  }
+  function renderPreviews() {
+    if (!selectedFiles.length) { previewStrip.style.display = 'none'; previewStrip.innerHTML = ''; return; }
+    previewStrip.style.display = 'flex';
+    previewStrip.innerHTML = '';
+    selectedFiles.forEach((f, idx) => {
+      const chip = document.createElement('div');
+      chip.className = 'preview-chip';
+      chip.innerHTML = `<img src="${URL.createObjectURL(f)}" alt=""><span>${f.name}</span><button data-i="${idx}" title="remove">✕</button>`;
+      chip.querySelector('button').addEventListener('click', () => {
+        selectedFiles.splice(idx, 1); renderPreviews(); runBtn.disabled = selectedFiles.length === 0;
+      });
+      previewStrip.appendChild(chip);
+    });
+  }
+
+  /* ── Inference (batch) ── */
+  runBtn.addEventListener('click', runBatch);
+  async function runBatch() {
+    if (!selectedFiles.length) return;
+    runBtn.disabled = true;
+    spinner.style.display = 'inline-block';
+    hideError();
+    resultsContainer.innerHTML = '';
+
+    const total = selectedFiles.length;
+    for (let i = 0; i < total; i++) {
+      btnText.textContent = total > 1 ? `Running ${i + 1}/${total}…` : 'Running…';
+      const file = selectedFiles[i];
+      const fd = new FormData();
+      fd.append('score_thr', scoreThr.value);
+      fd.append('image', file);
+      try {
+        const res = await fetch('/infer', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok || data.error) { showError(`${file.name}: ${data.error || 'failed'}`); continue; }
+        resultsContainer.appendChild(buildResultBlock(data, file.name));
+        saveToHistory(data, file.name);
+      } catch (err) {
+        showError(`${file.name}: ${err.message}`);
+      }
+    }
+
+    // Clear the upload queue now that the run is done
+    selectedFiles = [];
+    renderPreviews();
+    fileInput.value = '';
+
+    spinner.style.display = 'none';
+    btnText.textContent = 'Run Segmentation';
+    runBtn.disabled = true;
+    if (resultsContainer.firstChild) resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  /* ── Build one result block ── */
+  function buildResultBlock(data, fileName) {
+    const dets = data.detections || [];
+    const thr = parseFloat(scoreThr.value).toFixed(2);
+    const uniqueClasses = [...new Set(dets.map(d => d.class))];
+    const avgConf = dets.length ? (dets.reduce((s, d) => s + d.score, 0) / dets.length * 100).toFixed(1) + '%' : 'N/A';
+
+    const block = document.createElement('div');
+    block.className = 'result-block';
+
+    /* header + summary */
+    const chips = [
+      ['Objects', data.num_detections], ['Classes', uniqueClasses.length],
+      ['Avg confidence', avgConf], ['Inference', data.inference_time + ' s'], ['Threshold', thr],
+    ].map(([l, v]) => `<div class="summary-item"><div class="summary-val">${v}</div><div class="summary-label">${l}</div></div>`).join('');
+    const header = document.createElement('div');
+    header.innerHTML = `<h2 class="section-title">${fileName}</h2><div class="summary-row">${chips}</div>`;
+    block.appendChild(header);
+
+    /* wipe slider: original ↔ predicted */
+    const wipe = document.createElement('div');
+    wipe.innerHTML = `
+      <h3 class="compare-title">Original ↔ Predicted (drag the slider)</h3>
+      <div class="wipe">
+        <img class="wipe-base" src="${B64 + data.original_image}" alt="original" />
+        <img class="wipe-top"  src="${B64 + data.result_image}"  alt="predicted" />
+        <div class="wipe-line"></div>
+        <input type="range" class="wipe-range" min="0" max="100" value="50" />
+      </div>`;
+    const top = wipe.querySelector('.wipe-top');
+    const line = wipe.querySelector('.wipe-line');
+    const range = wipe.querySelector('.wipe-range');
+    const setWipe = v => { top.style.clipPath = `inset(0 ${100 - v}% 0 0)`; line.style.left = v + '%'; };
+    range.addEventListener('input', () => setWipe(range.value));
+    setWipe(50);
+    block.appendChild(wipe);
+
+    /* output panels: mask only + EALLIS maps when present */
+    const panels = [['Predicted mask only', data.mask_image]];
+    if (data.attention_image) panels.push(['Illumination attention (EALLIS)', data.attention_image]);
+    if (data.edge_image)      panels.push(['Predicted edge map (EALLIS)', data.edge_image]);
+    const grid = document.createElement('div');
+    grid.className = 'img-grid';
+    grid.innerHTML = panels.map(([cap, img]) =>
+      `<figure class="img-panel"><figcaption>${cap}</figcaption><img src="${B64 + img}" alt="${cap}" /></figure>`).join('');
+    block.appendChild(grid);
+
+    /* class filter legend */
+    const hidden = new Set();
+    const legend = document.createElement('div');
+    legend.className = 'legend-row';
+    if (uniqueClasses.length) {
+      legend.innerHTML = `<span class="legend-label">Filter classes:</span>` + uniqueClasses.map(c => {
+        const color = (dets.find(d => d.class === c) || {}).color || '#888';
+        return `<button class="chip" data-c="${c}"><span class="dot" style="background:${color}"></span>${c}</button>`;
+      }).join('');
+    }
+    block.appendChild(legend);
+
+    /* detection table */
+    const tableWrap = document.createElement('div');
+    tableWrap.className = 'table-wrap';
+    tableWrap.innerHTML = `<table class="det-table">
+      <thead><tr><th>Class</th><th>Confidence</th><th>Bounding box [x1, y1, x2, y2]</th></tr></thead>
+      <tbody></tbody></table>`;
+    const tbody = tableWrap.querySelector('tbody');
+    function renderRows() {
+      const shown = dets.filter(d => !hidden.has(d.class));
+      tbody.innerHTML = shown.length ? '' : `<tr><td colspan="3" class="empty-cell">No objects shown.</td></tr>`;
+      shown.forEach(d => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td><span class="dot" style="background:${d.color}"></span>${d.class}</td>
+                        <td>${d.score_pct}</td><td class="mono">[${d.bbox.join(', ')}]</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+    legend.querySelectorAll('.chip').forEach(btn => btn.addEventListener('click', () => {
+      const c = btn.dataset.c;
+      if (hidden.has(c)) { hidden.delete(c); btn.classList.remove('off'); }
+      else { hidden.add(c); btn.classList.add('off'); }
+      renderRows();
+    }));
+    renderRows();
+    block.appendChild(tableWrap);
+
+    /* downloads */
+    const base = fileName.replace(/\.[^.]+$/, '');
+    const dl = document.createElement('div');
+    dl.className = 'download-row';
+    const buttons = [
+      ['Overlay', () => downloadDataUrl(`${base}_overlay.jpg`, B64 + data.result_image)],
+      ['Mask',    () => downloadDataUrl(`${base}_mask.jpg`,    B64 + data.mask_image)],
+    ];
+    if (data.attention_image) buttons.push(['Attention', () => downloadDataUrl(`${base}_attention.jpg`, B64 + data.attention_image)]);
+    if (data.edge_image)      buttons.push(['Edge',      () => downloadDataUrl(`${base}_edge.jpg`,      B64 + data.edge_image)]);
+    buttons.push(['JSON', () => downloadJson(`${base}_detections.json`, {
+      image: fileName, threshold: thr, num_detections: data.num_detections,
+      inference_time_s: data.inference_time, detections: dets,
+    })]);
+    buttons.forEach(([label, fn]) => {
+      const b = document.createElement('button'); b.className = 'btn-download'; b.textContent = label;
+      b.addEventListener('click', fn); dl.appendChild(b);
+    });
+    block.appendChild(dl);
+
+    return block;
+  }
+
+  /* ── Downloads ── */
+  function downloadDataUrl(name, url) {
+    const a = document.createElement('a'); a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  function downloadJson(name, obj) {
+    const url = URL.createObjectURL(new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' }));
+    downloadDataUrl(name, url); setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  /* ── History ── */
+  function loadHistory() { try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch { return []; } }
+  function saveToHistory(data, fileName) {
+    const entry = {
+      time: Date.now(), name: fileName, num: data.num_detections,
+      thr: parseFloat(scoreThr.value).toFixed(2),
+      classes: [...new Set((data.detections || []).map(d => d.class))],
+      result_image: data.result_image,
+    };
+    let hist = loadHistory(); hist.unshift(entry); hist = hist.slice(0, HISTORY_MAX);
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(hist)); } catch {}
+    renderHistory();
+  }
+  function renderHistory() {
+    const hist = loadHistory();
+    if (!hist.length) { historyGrid.innerHTML = '<div class="history-empty">No segmentations yet.</div>'; return; }
+    historyGrid.innerHTML = hist.map(h => {
+      const when = new Date(h.time).toLocaleString();
+      const cls = h.classes.length ? h.classes.join(', ') : 'none';
+      return `<div class="history-card">
+        <img src="${B64 + h.result_image}" alt="result" />
+        <div class="history-meta">
+          <div class="history-num">${h.num} object${h.num === 1 ? '' : 's'}</div>
+          <div class="history-classes">${cls}</div>
+          <div class="history-time">thr ${h.thr} · ${when}</div>
+        </div></div>`;
+    }).join('');
+  }
+  clearHistory.addEventListener('click', () => { localStorage.removeItem(HISTORY_KEY); renderHistory(); });
+  renderHistory();
+
+  /* ── Error ── */
+  function showError(msg) { errorToast.textContent = msg; errorToast.style.display = 'block'; setTimeout(hideError, 6000); }
+  function hideError() { errorToast.style.display = 'none'; }
+</script>
+{% endblock %}

@@ -2,135 +2,23 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-<!-- Hero Banner -->
-<div class="hero-banner animate-in">
-  <div class="hero-tag"><span class="dot"></span> Enhanced Adaptive Low-Light Instance Segmentation</div>
-  <h1>See in the <span class="gradient-text">Dark</span></h1>
-  <p>EALLIS improves object detection and instance segmentation in challenging low-light environments using adaptive illumination enhancement, edge-aware learning, and noise-invariant training.</p>
-  <div class="hero-stats">
-    <div class="hero-stat"><div class="val">8</div><div class="lbl">Object Classes</div></div>
-    <div class="hero-stat"><div class="val">32.8%</div><div class="lbl">bbox mAP</div></div>
-    <div class="hero-stat"><div class="val">26.8%</div><div class="lbl">segm mAP</div></div>
-    <div class="hero-stat"><div class="val">12</div><div class="lbl">Epochs Trained</div></div>
-  </div>
-</div>
+<div class="page">
+  <h1 class="page-title">EALLIS</h1>
+  <p class="page-lead">Enhanced Adaptive Low-Light Instance Segmentation</p>
 
-<!-- What is EALLIS -->
-<div class="content-section">
-  <div class="section-label">About the Project</div>
-  <div class="grid-2">
-    <div class="content-card animate-in">
-      <h3>🌙 What is EALLIS?</h3>
-      <p>EALLIS (Enhanced Adaptive Low-Light Instance Segmentation) is a research system that extends the "Instance Segmentation in the Dark" framework with custom adaptive modules to significantly improve detection and segmentation accuracy in low-light conditions.</p>
-      <p style="margin-top:12px">The system builds upon Mask R-CNN with a ResNet-50 backbone, incorporating <strong>Adaptive White-balance Downsampling (AWD)</strong>, <strong>Smooth-oriented Convolutional Block (SCB)</strong>, and <strong>Disturbance Suppression Learning (DSL)</strong>, enhanced with our custom <strong>EALLIS illumination and edge-awareness modules</strong>.</p>
-    </div>
-    <div class="content-card animate-in" style="padding:0;overflow:hidden;">
-      <img src="{{ url_for('static', filename='segindark-pic-center.gif') }}" alt="Instance Segmentation in the Dark demo" style="width:100%;height:100%;object-fit:cover;margin:0;border:none;border-radius:var(--radius);" />
-    </div>
-  </div>
-</div>
+  <div class="card">
+    <h2>What is EALLIS?</h2>
+    <p>EALLIS (Enhanced Adaptive Low-Light Instance Segmentation) is a research system that
+       detects and segments objects in dark, low-light images where ordinary models fail.
+       It builds on Mask R-CNN with a ResNet-50 backbone and adds adaptive illumination,
+       edge-aware learning, and noise-invariant training so that object boundaries stay
+       accurate even under heavy sensor noise and low contrast.</p>
 
-<!-- Why Low-Light is Hard -->
-<div class="content-section">
-  <div class="section-label">Research Motivation</div>
-  <div class="grid-3">
-    <div class="feature-card animate-in">
-      <div class="feature-icon">🔊</div>
-      <h3>Sensor Noise</h3>
-      <p>Low photon counts at high ISO settings introduce severe shot noise and read noise, destroying fine-grained texture information critical for segmentation.</p>
-    </div>
-    <div class="feature-card animate-in">
-      <div class="feature-icon">🌑</div>
-      <h3>Low Contrast</h3>
-      <p>Object boundaries become nearly invisible in darkness. Standard edge detectors fail, making precise mask prediction extremely challenging.</p>
-    </div>
-    <div class="feature-card animate-in">
-      <div class="feature-icon">🎨</div>
-      <h3>Color Distortion</h3>
-      <p>White balance shifts and RAW sensor data processing under low-light create unnatural color casts that confuse learned feature representations.</p>
-    </div>
+    <p>The model recognises 8 object classes: bicycle, car, motorbike, bus, bottle, chair,
+       diningtable, and tvmonitor. For each detected object it predicts a class label, a
+       confidence score, a bounding box, and a pixel-accurate segmentation mask.</p>
   </div>
-</div>
 
-<!-- Pipeline -->
-<div class="content-section">
-  <div class="section-label">Processing Pipeline</div>
-  <div class="card animate-in">
-    <div class="pipeline">
-      <div class="pipeline-step">
-        <div class="pipeline-icon">📷</div>
-        <div class="pipeline-label">Input Image</div>
-      </div>
-      <div class="pipeline-arrow">→</div>
-      <div class="pipeline-step">
-        <div class="pipeline-icon">💡</div>
-        <div class="pipeline-label">Adaptive Enhancement</div>
-      </div>
-      <div class="pipeline-arrow">→</div>
-      <div class="pipeline-step">
-        <div class="pipeline-icon">🧠</div>
-        <div class="pipeline-label">Feature Extraction</div>
-      </div>
-      <div class="pipeline-arrow">→</div>
-      <div class="pipeline-step">
-        <div class="pipeline-icon">✂️</div>
-        <div class="pipeline-label">Edge-Aware Processing</div>
-      </div>
-      <div class="pipeline-arrow">→</div>
-      <div class="pipeline-step">
-        <div class="pipeline-icon">🎯</div>
-        <div class="pipeline-label">Instance Segmentation</div>
-      </div>
-      <div class="pipeline-arrow">→</div>
-      <div class="pipeline-step">
-        <div class="pipeline-icon">✅</div>
-        <div class="pipeline-label">Final Predictions</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Architecture Overview -->
-<div class="content-section">
-  <div class="section-label">Architecture Overview</div>
-  <div class="card animate-in">
-    <div class="card-header">
-      <div class="card-title">🏗️ Synthetic Pipeline with AWD + SCB + DSL</div>
-      <div class="card-badge" style="color:var(--cyan);border-color:rgba(0,200,255,0.3);background:var(--cyan-dim);">MaskRCNNNoiseInv</div>
-    </div>
-    <img src="{{ url_for('static', filename='overview.png') }}" alt="EALLIS Architecture" style="width:100%;border-radius:var(--radius-sm);margin-bottom:16px;" />
-    <div class="grid-2" style="margin-top:16px;">
-      <div>
-        <p style="font-size:0.85rem;color:var(--muted2);line-height:1.7;"><strong style="color:var(--text);">AWD (Adaptive White-balance Downsampling):</strong> Handles color distortions from RAW sensor processing under varying illumination conditions.</p>
-        <p style="font-size:0.85rem;color:var(--muted2);line-height:1.7;margin-top:8px;"><strong style="color:var(--text);">SCB (Smooth-oriented Convolutional Block):</strong> Suppresses high-frequency noise while preserving object boundaries critical for segmentation.</p>
-      </div>
-      <div>
-        <p style="font-size:0.85rem;color:var(--muted2);line-height:1.7;"><strong style="color:var(--text);">DSL (Disturbance Suppression Learning):</strong> Dual-branch training that forces the network to learn noise-invariant features by processing both clean and noisy versions.</p>
-        <p style="font-size:0.85rem;color:var(--muted2);line-height:1.7;margin-top:8px;"><strong style="color:var(--text);">EALLIS Module:</strong> Our custom adaptive illumination + edge awareness module injected at C3/C4 feature stages for enhanced low-light performance.</p>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Quick Links -->
-<div class="content-section">
-  <div class="section-label">Explore</div>
-  <div class="grid-3">
-    <a href="{{ url_for('predict') }}" class="feature-card" style="text-decoration:none;color:inherit;">
-      <div class="feature-icon">🔍</div>
-      <h3>Try Prediction</h3>
-      <p>Upload a low-light image and see EALLIS detect and segment objects in real time.</p>
-    </a>
-    <a href="{{ url_for('metrics') }}" class="feature-card" style="text-decoration:none;color:inherit;">
-      <div class="feature-icon">📊</div>
-      <h3>View Metrics</h3>
-      <p>Explore detection and segmentation evaluation metrics on the EALLIS test set.</p>
-    </a>
-    <a href="{{ url_for('analytics') }}" class="feature-card" style="text-decoration:none;color:inherit;">
-      <div class="feature-icon">📈</div>
-      <h3>Training Analytics</h3>
-      <p>Visualize loss curves, learning rate schedules, and training progress over 12 epochs.</p>
-    </a>
-  </div>
+  <a class="btn-primary" href="{{ url_for('segment') }}">Go to Segmentation</a>
 </div>
 {% endblock %}

@@ -30,8 +30,19 @@ data/eallis/JPEGImages
 *.zip
 
 # Checkpoints (large binary files)
+*.pth
 Checkpoints/*.pth
 work_dir/
+
+# Documents not for the repo (report, template, reference paper)
+*.pdf
+*.docx
+
+# Ablation (kept local, not pushed yet)
+Ablation/
+
+# Local tooling / editor config
+.claude/
 
 # Logs
 *.log
