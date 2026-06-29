@@ -85,6 +85,23 @@ coco_val = dict(
 
 BATCHSIZE = 8
 GPU = 1
+# -----------------------------------------------------------------------------
+# WARNING: CLASS-ORDER MISMATCH (verify before trusting per-class AP)
+# The model's class label index = position of the class name in the dataset's
+# `classes` tuple. The two datasets below use DIFFERENT orders:
+#
+#   coco (train) :  0 bicycle, 1 chair, 2 dining table, 3 bottle,
+#                   4 motorcycle, 5 car, 6 tv, 7 bus
+#   test_lod_coco:  0 bicycle, 1 car, 2 motorbike, 3 bus,
+#                   4 bottle, 5 chair, 6 diningtable, 7 tvmonitor
+#
+# Only index 0 (bicycle) lines up. With `train=[coco]`, a class the model learns
+# as label k is evaluated as a DIFFERENT class at test time, which scrambles
+# per-class AP. `train_eallis` uses the SAME order as `test_lod_coco`, so it is
+# consistent. Fix: either train on `train_eallis`, or reorder the `coco` classes
+# tuple to match `test_lod_coco`. Confirm with:
+#   ds = build_dataset(cfg.data.test); print(ds.CLASSES); print(ds.cat_ids)
+# -----------------------------------------------------------------------------
 data = dict(
     samples_per_gpu=BATCHSIZE,
     workers_per_gpu=BATCHSIZE,
