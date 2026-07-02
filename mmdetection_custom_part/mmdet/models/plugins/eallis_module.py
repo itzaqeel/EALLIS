@@ -63,8 +63,7 @@ class EdgeBranch(nn.Module):
 
 
 class EALLISBlock(nn.Module):
-    # Per-stage EALLIS block: illumination attention + feature rectifier + edge branch.
-    # Older checkpoints may warn about unused `fuse.*` keys; that layer was never used in forward, so the warning is benign.
+    # Per-stage block: illumination attention + feature rectifier + edge branch.
 
     def __init__(self, channels, use_edge=True):
         super().__init__()
@@ -75,10 +74,8 @@ class EALLISBlock(nn.Module):
 
         if use_edge:
             self.edge = EdgeBranch(channels)
-            
-        # Re-added dummy fuse layer to fix optimizer load_state_dict crash 
-        # when resuming from old checkpoints like best_bbox_mAP_epoch_12.pth.
-        # This layer is intentionally not used in forward().
+
+        # Unused layer kept for checkpoint compatibility.
         self.fuse = nn.Conv2d(channels + 1, channels, 1)
 
     def forward(self, x):

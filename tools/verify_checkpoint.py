@@ -2,9 +2,8 @@ import sys
 import os
 import torch
 
-# Add mmdetection to path so 'mmdet' works
+# Add mmdetection and project root to the path.
 sys.path.append(os.path.abspath('mmdetection'))
-# Add current dir so 'mmdetection_custom_part' works
 sys.path.append(os.path.abspath('.'))
 
 import traceback
@@ -16,13 +15,8 @@ except Exception:
     traceback.print_exc()
     sys.exit(1)
 
-# Import custom modules to register them
-# We need to import the module where MaskRCNNNoiseInv is defined.
-# Based on grep, it's in mmdetection_custom_part/mmdet/models/detectors/mask_rcnn.py
+# Import custom modules so the detector registers.
 try:
-    # We might need to make sure the internal imports in that file work.
-    # If it does 'from ..registry import DETECTORS', it expects to be in a package.
-    # Let's try importing it as a top-level module if possible or via the package structure.
     import mmdetection_custom_part.mmdet.models.detectors.mask_rcnn
     print("Successfully imported custom MaskRCNN module.")
 except Exception:
@@ -64,17 +58,6 @@ def main():
         sys.exit(1)
     
     print("Model built and checkpoint loaded successfully!")
-    
-    # Optional: Dummy Forward Pass
-    # model.eval()
-    # input = torch.randn(1, 3, 400, 600)
-    # print("Attempting dummy forward pass (this might fail if input format is specific)...")
-    # try:
-    #     # simple_test API: img (list of tensor), img_metas (list of list of dict)
-    #     # model.simple_test([input], [[{'img_shape':(400,600,3), 'scale_factor':1.0, 'filename':'dummy', 'ori_shape':(400,600,3)}]])
-    #     print("Dummy forward pass passed (or skipped).")
-    # except Exception as e:
-    #     print(f"Dummy forward pass failed: {e}")
 
 if __name__ == '__main__':
     main()

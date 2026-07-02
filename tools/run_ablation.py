@@ -1,29 +1,6 @@
-"""
-Automated EALLIS ablation in a single run.
-
-Trains the variants sequentially (each as a fresh subprocess, all warm-started
-from the same checkpoint), then evaluates each on bbox+segm mAP (from its log)
-and Boundary IoU, and writes a summary table.
-
-Variants (set via backbone flags):
-    baseline : use_eallis=False             -> no EALLIS block at all
-    illum    : use_eallis=True, use_edge=False -> illumination attention only
-    full     : use_eallis=True, use_edge=True  -> + edge branch + edge loss
-
-baseline -> illum isolates the attention; illum -> full isolates the EDGE
-mechanism (the core claim). All variants start from the same --load-from
-checkpoint, so the only thing that differs is which modules are switched on.
-
-Resumable: a variant whose final checkpoint already exists is skipped, so a
-disconnected Colab session can be continued by re-running the cell.
-
-Example (Colab, after the config-prep cell writes the patched config):
-    python tools/run_ablation.py \
-        --config <prepared_config>.py \
-        --work-root /content/drive/MyDrive/EALLIS_Output/ablation \
-        --load-from /content/drive/MyDrive/EALLIS_Output/Checkpoint1.pth \
-        --epochs 5 --lr-step 3
-"""
+# Automated EALLIS ablation: trains baseline / illum / full variants and writes a summary table.
+# Variants via backbone flags: baseline (use_eallis=False), illum (use_edge=False), full (both on).
+# Usage: python tools/run_ablation.py --config <cfg>.py --work-root <dir> --load-from <ckpt>.pth --epochs 5 --lr-step 3
 import os
 import sys
 import re

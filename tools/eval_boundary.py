@@ -1,15 +1,5 @@
-"""
-Evaluate mean Boundary IoU (mask-edge quality) on the EALLIS test set.
-
-This complements tools/eval_map.py: mAP/segm-mAP are dominated by mask
-*interiors*, so a boundary-refinement contribution barely shows there. Boundary
-IoU only scores the mask *edge* band, which is exactly where an edge-aware model
-should win — use this for the edge-on vs edge-off ablation table.
-
-Usage:
-    python tools/eval_boundary.py --checkpoint path/to/epoch_12.pth
-    python tools/eval_boundary.py --checkpoint best.pth --score-thr 0.3 --dilation 3
-"""
+# Evaluate mean Boundary IoU (mask-edge quality) on the EALLIS test set.
+# Usage: python tools/eval_boundary.py --checkpoint path/to/ckpt.pth [--score-thr 0.3 --dilation 3]
 import sys
 import os
 import argparse

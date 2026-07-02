@@ -11,17 +11,17 @@ import numpy as np
 from pathlib import Path
 from flask import Flask, request, jsonify, render_template
 
-# ─── Fix Windows console encoding (emoji-safe output) ────────────────────────
+# Fix Windows console encoding (emoji-safe output)
 if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
     import io as _io
     sys.stdout = _io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
     sys.stderr = _io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
-# ─── Resolve project paths ────────────────────────────────────────────────────
+# Resolve project paths
 BASE_DIR    = Path(__file__).parent.parent.resolve()
 CONFIG_FILE = str(BASE_DIR / 'Configs' / 'mask_rcnn_r50_fpn_caffe_AWD_SCB_DSL_SynCOCO2EALLIS.py')
 
-# ─── EALLIS 8-class definitions ───────────────────────────────────────────────
+# EALLIS 8-class definitions
 CLASSES = ('bicycle', 'car', 'motorbike', 'bus', 'bottle', 'chair', 'diningtable', 'tvmonitor')
 
 CLASS_COLORS = {
@@ -40,8 +40,7 @@ model     = None
 DEMO_MODE = False
 
 
-# ─── Model loading ────────────────────────────────────────────────────────────
-
+# Model loading
 def load_model(config_file: str, checkpoint_file: str, device: str = 'cuda:0'):
     global model
 
@@ -72,8 +71,7 @@ def load_model(config_file: str, checkpoint_file: str, device: str = 'cuda:0'):
 
 
 def clean_inference(model, img):
-    # Like mmdet inference_detector but without the noise-injection line in the patched apis/inference.py.
-    # Returns (result, maps); maps holds the EALLIS attention/edge maps captured during the forward.
+    # Clean inference (no noise injection); returns (result, attention/edge maps).
     import torch
     from mmcv.parallel import collate, scatter
     from mmdet.datasets import replace_ImageToTensor
@@ -116,7 +114,7 @@ def clean_inference(model, img):
 
 
 def render_heatmap(arr, base_rgb, mode='jet', overlay=True):
-    """Turn a 2-D activation map into a display image sized to base_rgb."""
+    # Turn a 2-D activation map into a display image sized to base_rgb.
     import cv2
     from PIL import Image
 
@@ -138,8 +136,7 @@ def render_heatmap(arr, base_rgb, mode='jet', overlay=True):
     return heat
 
 
-# ─── Visualisation ────────────────────────────────────────────────────────────
-
+# Visualisation
 def draw_results(img_bgr: np.ndarray, bbox_result, segm_result, score_thr: float = 0.3):
     # Returns (overlay_img, mask_only_img, detections) for an image.
     from PIL import Image, ImageDraw, ImageFont
@@ -171,7 +168,7 @@ def draw_results(img_bgr: np.ndarray, bbox_result, segm_result, score_thr: float
 
             x1, y1, x2, y2 = int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])
 
-            # ── Mask overlay + mask-only canvas ───────────────────────────────
+            # Mask overlay + mask-only canvas
             if mask is not None:
                 m = mask.astype(bool)
                 # translucent coloured mask on top of the original
@@ -184,13 +181,13 @@ def draw_results(img_bgr: np.ndarray, bbox_result, segm_result, score_thr: float
                 solid[m] = color
                 mask_canvas = Image.fromarray(solid)
 
-            # ── Bounding box ──────────────────────────────────────────────────
+            # Bounding box
             for thickness in range(2):
                 draw.rectangle(
                     [x1 - thickness, y1 - thickness, x2 + thickness, y2 + thickness],
                     outline=(*color, 255), width=1)
 
-            # ── Label pill ────────────────────────────────────────────────────
+            # Label pill
             label = f'{cls_name}  {score:.0%}'
             try:
                 tw = draw.textlength(label, font=font_label)
@@ -222,8 +219,7 @@ def pil_to_b64(img) -> str:
     return base64.b64encode(buf.getvalue()).decode()
 
 
-# ─── Page Routes ──────────────────────────────────────────────────────────────
-
+# Page Routes
 @app.route('/')
 def index():
     return render_template('dashboard.html', active_page='dashboard')
@@ -236,8 +232,7 @@ def segment():
                            class_colors=CLASS_COLORS)
 
 
-# ─── API Routes ───────────────────────────────────────────────────────────────
-
+# API Routes
 @app.route('/health')
 def health():
     return jsonify({'status': 'ok', 'demo': DEMO_MODE,
@@ -245,10 +240,10 @@ def health():
 
 
 def _predict(img_bytes, score_thr):
-    """Run the model (or demo) on raw image bytes. Returns a result dict."""
+    # Run the model (or demo) on raw image bytes; returns a result dict.
     from PIL import Image, ImageDraw
 
-    # ── Demo mode ──────────────────────────────────────────────────────────────
+    # Demo mode
     if DEMO_MODE:
         import random
         orig = Image.open(io.BytesIO(img_bytes)).convert('RGB')
@@ -284,7 +279,7 @@ def _predict(img_bytes, score_thr):
             'original_image': pil_to_b64(orig),
         }
 
-    # ── Real inference ───────────────────────────────────────────────────────────
+    # Real inference
     import cv2
 
     nparr = np.frombuffer(img_bytes, np.uint8)
@@ -335,8 +330,7 @@ def infer():
     return jsonify(resp)
 
 
-# ─── Entry point ─────────────────────────────────────────────────────────────
-
+# Entry point
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='EALLIS Web App')
     parser.add_argument('--checkpoint', type=str, default=None,

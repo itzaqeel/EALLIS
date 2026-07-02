@@ -38,15 +38,18 @@ work_dir/
 *.pdf
 *.docx
 
-# Ablation (kept local, not pushed yet)
-Ablation/
-
 # Local tooling / editor config
 .claude/
+.agents/
 
 # Logs
 *.log
 *.log.json
+
+# Keep ablation logs and scripts (results), but not their checkpoints
+!Ablation/**/*.log
+!Ablation/**/*.log.json
+!Ablation/**/*.py
 
 # Jupyter
 .ipynb_checkpoints/

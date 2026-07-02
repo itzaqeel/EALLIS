@@ -9,9 +9,7 @@ class ResNet(MMDetResNet):
     def __init__(self, *args, use_eallis=True, use_edge=True, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Ablation switches: use_eallis toggles the whole block (baseline when
-        # False); use_edge toggles the edge branch + edge loss (illum-only when
-        # False). The detector's edge loss no-ops when no edge outputs exist.
+        # Ablation switches: use_eallis toggles the block, use_edge toggles the edge branch.
         self.use_eallis = use_eallis
         self.use_edge = use_edge
         self.edge_outputs = []
@@ -21,10 +19,9 @@ class ResNet(MMDetResNet):
             self.eallis_c4 = EALLISBlock(1024, use_edge=use_edge)
 
     def forward(self, x):
-        # Reset edge outputs every forward
+        # Reset edge outputs each forward pass.
         self.edge_outputs = []
 
-        # Get original outputs
         outs = super().forward(x)
 
         if not self.use_eallis:

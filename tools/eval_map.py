@@ -1,8 +1,5 @@
-"""
-Evaluate mAP (bbox + segm) on the EALLIS test set using the provided config and checkpoint.
-Usage:
-    python tools/eval_map.py
-"""
+# Evaluate mAP (bbox + segm) on the EALLIS test set.
+# Usage: python tools/eval_map.py
 import sys
 import os
 import traceback

@@ -4,13 +4,7 @@ import torch.nn.functional as F
 
 
 class EdgeLoss(nn.Module):
-    """Class-balanced edge loss (BCE + Dice).
-
-    Edge pixels are only ~1-2% of the image, so a plain BCE collapses to the
-    trivial "predict no edge" solution (loss parks near its floor and never
-    learns). We re-weight the positive (edge) class by the neg/pos pixel ratio
-    so the branch actually receives gradient on the thin boundary regions.
-    """
+    # Class-balanced edge loss (weighted BCE + Dice).
 
     def __init__(self, max_pos_weight=20.0):
         super().__init__()
@@ -20,7 +14,7 @@ class EdgeLoss(nn.Module):
         pred = pred.squeeze(1)
         target = target.squeeze(1).float()
 
-        # Balance the heavy edge/background pixel imbalance.
+        # Balance the edge/background pixel imbalance.
         num_pos = target.sum()
         num_neg = target.numel() - num_pos
         pos_weight = (num_neg / (num_pos + 1e-6)).clamp(max=self.max_pos_weight)

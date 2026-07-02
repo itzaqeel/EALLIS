@@ -21,14 +21,10 @@ from .lsid import LSID
 import time
 
 colors = plt.cm.jet(np.linspace(0.0, 1.00, 256))
-# for i in range(len(colors)):
-    # temp = colors[i][0]
-    # colors[i][0] = colors[i][2]
-    # colors[i][2] = temp
 
 @DETECTORS.register_module()
 class MaskRCNN(TwoStageDetector):
-    """Implementation of `Mask R-CNN <https://arxiv.org/abs/1703.06870>`_"""
+    # Mask R-CNN (He et al., 2017).
 
     def __init__(self,
                  backbone,
@@ -64,10 +60,11 @@ class MaskRCNN(TwoStageDetector):
 
 @DETECTORS.register_module()
 class MaskRCNNNoiseInv(MaskRCNN):
-    """Implementation of `Mask R-CNN <https://arxiv.org/abs/1703.06870>`_"""
+    # Mask R-CNN with disturbance-suppression (noise-invariant) training.
 
     def __init__(self, **args):
         super().__init__(**args)
+
     def forward_train(self,
                       img,
                       img_metas,
@@ -78,39 +75,12 @@ class MaskRCNNNoiseInv(MaskRCNN):
                       proposals=None,
                       return_proposal=False,
                       **kwargs):
-        """
-        Args:
-            img (Tensor): of shape (N, C, H, W) encoding input images.
-                Typically these should be mean centered and std scaled.
-
-            img_metas (list[dict]): list of image info dict where each dict
-                has: 'img_shape', 'scale_factor', 'flip', and may also contain
-                'filename', 'ori_shape', 'pad_shape', and 'img_norm_cfg'.
-                For details on the values of these keys see
-                `mmdet/datasets/pipelines/formatting.py:Collect`.
-
-            gt_bboxes (list[Tensor]): Ground truth bboxes for each image with
-                shape (num_gts, 4) in [tl_x, tl_y, br_x, br_y] format.
-
-            gt_labels (list[Tensor]): class indices corresponding to each box
-
-            gt_bboxes_ignore (None | list[Tensor]): specify which bounding
-                boxes can be ignored when computing the loss.
-
-            gt_masks (None | Tensor) : true segmentation masks for each box
-                used if the architecture supports a segmentation task.
-
-            proposals : override rpn proposals with custom proposals. Use when
-                `with_rpn` is False.
-
-        Returns:
-            dict[str, Tensor]: a dictionary of loss components
-        """
+        # Single-branch forward: RPN + RoI heads plus the auxiliary edge loss.
         backbone_x, x = self.extract_feat(img, return_backbone=True)
 
         losses = dict()
 
-        # RPN forward and loss
+        # RPN forward and loss.
         if self.with_rpn:
             proposal_cfg = self.train_cfg.get('rpn_proposal',
                                               self.test_cfg.rpn)
@@ -167,26 +137,8 @@ class MaskRCNNNoiseInv(MaskRCNN):
         else:
             return losses, backbone_x, x
 
-    def copy_self(self, load_from):
-        # return None
-        # print('copy')
-        raise Exception
-        self.cp = copy.deepcopy(self)
-        teacher_ckpt = load_from
-        print('load teacher param from:', teacher_ckpt)
-        load_checkpoint(self.cp, teacher_ckpt, map_location='cuda')
-
-    # @auto_fp16(apply_to=('img', ))
     def forward(self, img, img_metas, return_loss=True, **kwargs):
-        """Calls either :func:`forward_train` or :func:`forward_test` depending
-        on whether ``return_loss`` is ``True``.
-
-        Note this setting will change the expected inputs. When
-        ``return_loss=True``, img and img_meta are single-nested (i.e. Tensor
-        and List[dict]), and when ``resturn_loss=False``, img and img_meta
-        should be double nested (i.e.  List[Tensor], List[List[dict]]), with
-        the outer list indicating test time augmentations.
-        """
+        # Dispatch to forward_train or forward_test based on return_loss.
         if torch.onnx.is_in_onnx_export():
             assert len(img_metas) == 1
             return self.onnx_export(img[0], img_metas[0])
@@ -206,11 +158,10 @@ class MaskRCNNNoiseInv(MaskRCNN):
                     losses.pop(k)
             return losses
         else:
-            # return self.forward_test(img, img_metas, **kwargs)
             return super().forward_test(img, img_metas, **kwargs)
 
     def extract_feat(self, img, return_backbone=True):
-        """Directly extract features from the backbone+neck."""
+        # Extract features from backbone (and neck).
         x = self.backbone(img)
         if self.with_neck:
             if return_backbone:
@@ -224,28 +175,19 @@ class MaskRCNNNoiseInv(MaskRCNN):
         
 
     def forward_dummy(self, img):
-        """Used for computing network flops.
-
-        See `mmdetection/tools/analysis_tools/get_flops.py`
-        """
+        # Used for computing network FLOPs.
         outs = ()
-        # backbone
-        # img_residual = F.interpolate(self.unet(img), (img.size(-2), img.size(-1)))
-        # img = img + img_residual
         x = self.extract_feat(img, return_backbone=False)
-        # rpn
         if self.with_rpn:
             rpn_outs = self.rpn_head(x)
             outs = outs + (rpn_outs, )
         proposals = torch.randn(1000, 4).to(img.device)
-        # roi_head
         roi_outs = self.roi_head.forward_dummy(x, proposals)
         outs = outs + (roi_outs, )
         return outs
 
     def simple_test(self, img, img_metas, proposals=None, rescale=False, **kwargs):
-        """Test without augmentation."""
-
+        # Test without augmentation.
         assert self.with_bbox, 'Bbox head must be implemented.'
         def feature2image(feat, save_dir, name, normalize=False):
             _, _, h, w = feat.shape
@@ -263,12 +205,8 @@ class MaskRCNNNoiseInv(MaskRCNN):
             colored = np.zeros(shape=(save_img.shape[0], save_img.shape[1], 3)).astype(np.uint8)
             for i in range(3):
                 for num in np.unique(save_img):
-                    # print(num)
-                    # print(colored[save_img == int(num)])
                     colored[:,:,i][save_img[:, :, i] == int(num)] = colors[int(num)][i] * 255.
-            # Image.fromarray(save_img).save(f'{save_dir}/{name}_.jpg')
             Image.fromarray(colored).save(f'{save_dir}/{name}.png')
-            pass
 
         def tensor2img(t, save_dir, name):
             norm = torch.tensor([103.530, 116.280, 123.675])[None, :, None, None].to(t.device)
@@ -276,7 +214,6 @@ class MaskRCNNNoiseInv(MaskRCNN):
             img = t[0].permute(1, 2, 0).cpu().numpy().astype(np.uint8)
             Image.fromarray(img).save(f'{save_dir}/{name}.png')
 
-        # img = self.unet(img) + img
         backbone_x, x = self.extract_feat(img)
         if proposals is None:
             proposal_list = self.rpn_head.simple_test_rpn(x, img_metas)
