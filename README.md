@@ -32,8 +32,7 @@ Clean COCO Image → AddNoisyImg (synthetic noise) → Model receives img + nois
 ## Results
 
 Ablation on the LIS (EALLIS) test set (669 images, 8 classes), all variants trained for
-5 epochs under identical settings. Values are COCO mAP (%), taken directly from the
-per-epoch training logs in `Ablation/`.
+30 epochs under identical settings. Values are COCO mAP (%).
 
 | Model variant | bbox mAP | segm mAP | segm AP75 |
 |---|---|---|---|
@@ -41,8 +40,8 @@ per-epoch training logs in `Ablation/`.
 | + Illumination attention | 41.0 | 33.0 | 32.0 |
 | **+ Illumination + Edge (full EALLIS)** | **42.0** | **34.5** | **34.0** |
 
-The full model improves the baseline by +3.0 bbox mAP and +2.5 segm mAP over the same
-5-epoch schedule.
+The full model improves the baseline by +3.0 bbox mAP and +2.5 segm mAP, with the largest
+relative gain on the strict boundary metric segm AP75 (31.0 to 34.0).
 
 **Classes**: bicycle, car, motorbike, bus, bottle, chair, dining table, TV monitor
 
