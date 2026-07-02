@@ -1,5 +1,18 @@
 # import os.path as osp
 
+# Register the custom EALLIS modules so this config builds the full model when run
+# directly with tools/train.py (the ResNet backbone with EALLIS blocks, the
+# MaskRCNNNoiseInv detector, the edge loss, and the edge-target pipeline transform).
+custom_imports = dict(
+    imports=[
+        'mmdetection_custom_part.mmdet.models.backbones',
+        'mmdetection_custom_part.mmdet.models.detectors',
+        'mmdetection_custom_part.mmdet.models.plugins',
+        'mmdetection_custom_part.mmdet.models.losses',
+        'mmdetection_custom_part.mmdet.datasets.pipelines.edge_target',
+    ],
+    allow_failed_imports=False)
+
 # dataset settings
 dataset_type = 'CocoDataset'
 # data_root = 'data/coco/'
@@ -28,7 +41,7 @@ train_pipeline = [
     dict(type='Normalize', **img_norm_cfg),
     dict(type='Pad', size_divisor=32),
     dict(type='DefaultFormatBundle'),
-    dict(type='Collect', keys=['img', 'noisy_img', 'gt_bboxes', 'gt_labels', 'gt_masks']),
+    dict(type='Collect', keys=['img', 'noisy_img', 'gt_bboxes', 'gt_labels', 'gt_masks', 'gt_edges']),
 ]
 
 test_pipeline = [
@@ -293,5 +306,3 @@ model = dict(
             nms=dict(type='nms', iou_threshold=0.5),
             max_per_img=100,
             mask_thr_binary=0.5)))
-
-edge_loss = dict(type='EdgeLoss', loss_weight=1.0)

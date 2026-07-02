@@ -69,6 +69,14 @@ train_eallis = dict(
     img_prefix='data/eallis/',
     pipeline=train_pipeline)
 
+val_lod_coco = dict(
+    classes=('bicycle', 'car', 'motorbike', 'bus',
+             'bottle', 'chair', 'diningtable', 'tvmonitor'),
+    type='CocoDataset',
+    ann_file='data/eallis/annotations/eallis_coco_JPG_train+1.json',
+    img_prefix='data/eallis/',
+    pipeline=test_pipeline)
+
 coco = dict(
     classes=('bicycle', 'chair', 'dining table', 'bottle', 'motorcycle', 'car', 'tv', 'bus'),
     type='CocoDataset',
@@ -90,7 +98,7 @@ data = dict(
     workers_per_gpu=BATCHSIZE,
     train=[coco, ],
     # train=[train_eallis, ],  # uncomment to train on EALLIS instead
-    val=test_lod_coco,
+    val=val_lod_coco,   # held-out validation (LIS train split); not the test set
     test=test_lod_coco
 )
 
