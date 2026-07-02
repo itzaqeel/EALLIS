@@ -32,7 +32,7 @@ Clean COCO Image → AddNoisyImg (synthetic noise) → Model receives img + nois
 ## Results
 
 Ablation on the LIS (EALLIS) test set (669 images, 8 classes), all variants trained for
-30 epochs under identical settings. Values are COCO mAP (%).
+12 epochs under identical settings. Values are COCO mAP (%).
 
 | Model variant | bbox mAP | segm mAP | segm AP75 |
 |---|---|---|---|
