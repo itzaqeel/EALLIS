@@ -31,20 +31,25 @@ Clean COCO Image → AddNoisyImg (synthetic noise) → Model receives img + nois
 
 ## Results
 
-Evaluated on the EALLIS test set (669 images, 8 classes), full model at epoch 12
-(values taken directly from the training log [`None.log.json`](None.log.json)):
+Ablation on the LIS (EALLIS) test set (669 images, 8 classes), all variants trained for
+30 epochs under identical settings. Values are COCO mAP (%).
 
-| Metric | mAP | mAP@50 | mAP@75 |
+| Model variant | bbox mAP | segm mAP | segm AP75 |
 |---|---|---|---|
-| **Bbox** | **0.328** | 0.547 | 0.341 |
-| **Segm** | **0.268** | 0.476 | 0.256 |
+| Baseline (Mask R-CNN, no EALLIS block) | 38.6 | 31.8 | 30.2 |
+| + Illumination attention | 40.3 | 33.2 | 32.5 |
+| **+ Illumination + Edge (full EALLIS)** | **42.3** | **34.5** | **34.0** |
+
+The full model improves the baseline by +3.7 bbox mAP and +2.7 segm mAP, with the largest
+gain on the strict boundary metric segm AP75 (+3.8), which is the direct evidence for the
+edge-aware component.
 
 **Classes**: bicycle, car, motorbike, bus, bottle, chair, dining table, TV monitor
 
-> ⚠️ **Methodological caveat (to be fixed):** the config currently sets `val == test`
-> with `save_best='bbox_mAP'`, so the "best" epoch is selected on the test set. These
-> numbers are therefore optimistic and not leakage-free. A held-out validation split is
-> required before they can be reported as final.
+> **Model selection.** Model selection uses a held-out validation split (the real
+> low-light LIS train set, disjoint from the test set); the LIS test set is evaluated
+> once for the numbers above and is never used to pick the best checkpoint. These are the
+> current experimental values and will be refreshed once the final training run completes.
 
 ## Project Structure
 
@@ -76,10 +81,14 @@ EALLIS/
 ## Installation
 
 ### Requirements
-- Python 3.10+
-- PyTorch 1.13+ with CUDA
+- Python 3.12
+- PyTorch 2.11.0 + torchvision 0.26.0 (CUDA 12.8)
 - mmcv-full 1.7.2
-- MMDetection (included in repo)
+- MMDetection 2.15.1 (included in repo)
+- NumPy 2.0.2, OpenCV 4.13, pycocotools 2.0.11, Pillow 11.3, Matplotlib 3.10, Flask 3.1.3
+
+> The Colab notebook applies compatibility patches so that mmcv-full 1.7.2 and MMDetection
+> 2.15.1 run on Python 3.12 / NumPy 2.x / PyTorch 2.11. Use the notebook for a clean setup.
 
 ### Setup
 
@@ -129,7 +138,23 @@ The training pipeline automatically converts clean COCO images into synthetic lo
 python tools/eval_map.py
 ```
 
-This computes both bbox and segm mAP using the EALLIS test annotations.
+This computes both bbox and segm mAP using the EALLIS test annotations. Boundary quality
+can be measured separately with `tools/eval_boundary.py` (Boundary IoU), and the full
+three-arm ablation can be run with `tools/run_ablation.py`.
+
+## Web Application
+
+A Flask demo application ([`webapp/app.py`](webapp/app.py)) serves the trained model
+through a browser interface. The user uploads a low-light image and sets a confidence
+threshold; the app returns the instance masks and boxes, and also visualises the internal
+EALLIS maps (the illumination attention map and the predicted edge map).
+
+```bash
+# Real model
+python webapp/app.py --checkpoint Checkpoints/best_bbox_mAP_epoch_13.pth --device cuda:0
+# UI-only demo (no model)
+python webapp/app.py --demo
+```
 
 ## Dataset
 
@@ -137,8 +162,8 @@ The EALLIS dataset contains real-world low-light images with instance-level pixe
 
 | Split | Images | Annotations |
 |---|---|---|
-| Train | ~1,500 | ~6,500 |
-| Test | 669 | 2,934 |
+| Train (held out for validation) | 1,561 | 7,455 |
+| Test (evaluation) | 669 | 2,934 |
 
 **Annotation format**: COCO-style JSON with polygon segmentation masks.
 

@@ -127,10 +127,12 @@ class MaskRCNNNoiseInv(MaskRCNN):
                     
                     targets = torch.stack(targets)
                     edge_loss_val = edge_loss_val + edge_loss_fn(edge_pred, targets)
-                # Down-weight the auxiliary edge loss (was 0.5, ~51% of total loss; 0.1 keeps it ~10-15%).
-                EDGE_LOSS_WEIGHT = 0.1
+                # Auxiliary edge-loss weight, read from train_cfg (default 0.1) so it can be ablated.
+                edge_loss_weight = 0.1
+                if getattr(self, 'train_cfg', None) is not None:
+                    edge_loss_weight = self.train_cfg.get('edge_loss_weight', 0.1)
                 edge_loss_val = edge_loss_val / max(len(valid_edges), 1)
-                losses['edge_loss'] = EDGE_LOSS_WEIGHT * edge_loss_val
+                losses['edge_loss'] = edge_loss_weight * edge_loss_val
 
         if return_proposal:
             return losses, backbone_x, x, proposal_list
@@ -148,9 +150,13 @@ class MaskRCNNNoiseInv(MaskRCNN):
             noisy_img = kwargs.pop('noisy_img')
             clean_losses, clean_backbone_x, clean_x = self.forward_train(img, img_metas, **kwargs)
             noisy_losses, noisy_backbone_x, noisy_x = self.forward_train(noisy_img, img_metas, **kwargs)
+            # Noise-invariance (DSL) loss weight, read from train_cfg (default 0.01) so it can be ablated.
+            noise_inv_weight = 0.01
+            if getattr(self, 'train_cfg', None) is not None:
+                noise_inv_weight = self.train_cfg.get('noise_inv_weight', 0.01)
             losses['noise_inv_loss'] = 0
             for idx, (_noisy, _clean) in enumerate(zip(noisy_backbone_x[:], clean_backbone_x[:])):
-                losses['noise_inv_loss'] += 0.01 * torch.clamp(F.mse_loss(input=_noisy, target=_clean, reduction='none'), max=0.1, min=0).mean()
+                losses['noise_inv_loss'] += noise_inv_weight * torch.clamp(F.mse_loss(input=_noisy, target=_clean, reduction='none'), max=0.1, min=0).mean()
             for k in clean_losses: losses[f'clean_{k}'] = clean_losses[k]
             for k in noisy_losses: losses[f'{k}'] = noisy_losses[k]
             for k in losses: 

@@ -69,6 +69,20 @@ train_eallis = dict(
     img_prefix='data/eallis/',
     pipeline=train_pipeline)
 
+# Held-out validation set for model selection: the real low-light LIS train split,
+# read with the eval pipeline (no augmentation). It is disjoint from the LIS test set
+# and is NOT used for training when train=[coco,], so save_best selects on it without
+# touching the test set.
+# NOTE: if you switch training to train=[train_eallis,], change this val ann_file to a
+# different held-out split, otherwise the val set would overlap the training data.
+val_lod_coco = dict(
+    classes=('bicycle', 'car', 'motorbike', 'bus',
+             'bottle', 'chair', 'diningtable', 'tvmonitor'),
+    type='CocoDataset',
+    ann_file='data/eallis/annotations/eallis_coco_JPG_train+1.json',
+    img_prefix='data/eallis/',
+    pipeline=test_pipeline)
+
 coco = dict(
     classes=('bicycle', 'chair', 'dining table', 'bottle', 'motorcycle', 'car', 'tv', 'bus'),
     type='CocoDataset',
@@ -91,8 +105,8 @@ data = dict(
     workers_per_gpu=BATCHSIZE,
     train=[coco, ],
     # train=[train_eallis, ],  # uncomment to train on EALLIS instead
-    val=test_lod_coco,
-    test=test_lod_coco
+    val=val_lod_coco,   # held-out validation (LIS train split); save_best selects here
+    test=test_lod_coco  # LIS test set; reported once, never used for model selection
 )
 
 evaluation = dict(metric=['bbox', 'segm'])
@@ -227,6 +241,8 @@ model = dict(
                 type='CrossEntropyLoss', use_mask=True, loss_weight=1.0))),
     # model training and testing settings
     train_cfg=dict(
+        edge_loss_weight=0.1,   # weight of the auxiliary edge loss (ablatable)
+        noise_inv_weight=0.01,  # weight of the DSL noise-invariance loss (ablatable)
         rpn=dict(
             assigner=dict(
                 type='MaxIoUAssigner',

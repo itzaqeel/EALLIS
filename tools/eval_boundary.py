@@ -63,9 +63,22 @@ def main():
                     help='mask IoU needed to count a prediction as a match to a GT instance')
     ap.add_argument('--dilation', type=int, default=3,
                     help='boundary band width in pixels')
+    ap.add_argument('--use-eallis', type=int, default=None,
+                    help='override backbone use_eallis (1=on, 0=off) for the ablation arms')
+    ap.add_argument('--use-edge', type=int, default=None,
+                    help='override backbone use_edge (1=on, 0=off) for the ablation arms')
     args = ap.parse_args()
 
     cfg = Config.fromfile(args.config)
+
+    # Ablation-arm overrides: build the custom EALLIS ResNet with the requested flags so a
+    # single config evaluates every arm and each checkpoint loads without random weights.
+    if args.use_eallis is not None or args.use_edge is not None:
+        cfg.model.backbone.type = 'ResNet'
+        if args.use_eallis is not None:
+            cfg.model.backbone.use_eallis = bool(args.use_eallis)
+        if args.use_edge is not None:
+            cfg.model.backbone.use_edge = bool(args.use_edge)
     dataset = build_dataset(cfg.data.test)
     loader = build_dataloader(dataset, samples_per_gpu=1, workers_per_gpu=0,
                               dist=False, shuffle=False)
