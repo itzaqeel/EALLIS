@@ -149,10 +149,11 @@ threshold; the app returns the instance masks and boxes, and also visualises the
 EALLIS maps (the illumination attention map and the predicted edge map).
 
 ```bash
-# Real model
-python webapp/app.py --checkpoint Checkpoints/best_bbox_mAP_epoch_13.pth --device cuda:0
-# UI-only demo (no model)
-python webapp/app.py --demo
+# Real model using the virtual environment (runs on CPU by default for the demo)
+.\venv\Scripts\python.exe webapp\app.py --checkpoint Checkpoints\best_bbox_mAP_epoch_13.pth --device cpu --port 5057
+
+# UI-only demo (no model loaded, just the interface)
+.\venv\Scripts\python.exe webapp\app.py --demo --port 5057
 ```
 
 ## Dataset
