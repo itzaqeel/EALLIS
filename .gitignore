@@ -61,3 +61,18 @@ mmdetection/dist/
 
 # Antigravity / Gemini
 .gemini/
+
+# Root static/ is a duplicate of webapp/static/
+/static/
+
+# Word lock files
+~$*
+
+# Stray images in root
+/*.jpg
+/*.jpeg
+/*.png
+
+# Node artifacts
+package-lock.json
+node_modules/
